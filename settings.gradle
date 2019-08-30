@@ -1,1 +1,4 @@
-include ':app', ':backend', ':backend_android'
+if (!System.env.JITPACK)
+    include ':app'
+
+include ':backend', ':backend_android'
