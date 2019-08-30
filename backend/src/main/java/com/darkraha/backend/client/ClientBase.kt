@@ -104,7 +104,7 @@ open class ClientBase : Client, QueryLifeListener {
     }
 
     override fun prepareQuery(): Query {
-        val q = queryManager!!.newQuery()
+        val q = queryManager.newQuery()
         q.assignFrom(common)
         return q
     }

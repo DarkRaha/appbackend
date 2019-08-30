@@ -36,6 +36,6 @@ proguard/
 *.iml
 
 # Gradle files
-gradlew*
+#gradlew*
 
 .DS_Store

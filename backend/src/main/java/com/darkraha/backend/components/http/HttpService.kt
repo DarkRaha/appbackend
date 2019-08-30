@@ -189,7 +189,12 @@ open class HttpServiceDefault : HttpService {
                 CMD_LOAD_TEXT -> response.assignFrom(loadText(url, q.namedParams()))
                 CMD_LOAD_FILE -> response.assignFrom(loadFile(url, q.fileDestination()!!))
                 CMD_POST_FORM -> response.assignFrom(postForm(url, q.namedParams()))
-                CMD_UPLOAD_FILE -> response.assignFrom(uploadFile(url, q.getExtraParamAs<UploadEP>()!!))
+                CMD_UPLOAD_FILE -> response.assignFrom(
+                    uploadFile(
+                        url,
+                        q.getExtraParamAs<UploadEP>()!!
+                    )
+                )
                 else -> {
                     handleAuto(q, swh, response)
                 }
@@ -198,11 +203,14 @@ open class HttpServiceDefault : HttpService {
     }
 
 
-    protected fun handleAuto(q: UserQuery, swh: ServiceWorkflowHelper, response: ClientQueryEditor) {
+    protected fun handleAuto(
+        q: UserQuery,
+        swh: ServiceWorkflowHelper,
+        response: ClientQueryEditor
+    ) {
 
         val url = q.url()!!
         var fileDst = q.fileDestination()
-
 
 
         val uploadEP = if (q.extraParam() is UploadEP) {
@@ -266,7 +274,7 @@ open class HttpServiceDefault : HttpService {
                     }
 
                     if (tmpFile == null && ((q.isOptionSaveFile() || contentSize > Units.Kb * 500)
-                        || (!mimeTypeTxt && !q.isOptionSaveBytes()))
+                                || (!mimeTypeTxt && !q.isOptionSaveBytes()))
                     ) {
                         fileDst = File("${url.encodeMd5()}.${url.extractFileExtension()}")
                         tmpFile = getTmpFileFor(fileDst)
@@ -373,10 +381,9 @@ open class HttpServiceDefault : HttpService {
     protected fun addUrlParameters(r: Request.Builder, params: Map<String, String>?, url: String) {
         if (params != null && params.size > 0) {
             val httpBuider = HttpUrl.parse(url)!!.newBuilder()
-            if (params != null) {
-                params.forEach {
-                    httpBuider.addQueryParameter(it.key, it.value)
-                }
+
+            params.forEach {
+                httpBuider.addQueryParameter(it.key, it.value)
             }
 
             r.url(httpBuider.build())
@@ -414,7 +421,7 @@ open class HttpServiceDefault : HttpService {
 
                     val sinkBuffer = sink.buffer()
                     var totalBytesRead: Long = 0
-                    var bytesRead: Long = 0
+                    var bytesRead: Long
 
                     while (!query.isFinished()) {
 
@@ -447,7 +454,7 @@ open class HttpServiceDefault : HttpService {
                     val sinkBuffer = sink.buffer()
 
                     var totalBytesRead: Long = 0
-                    var bytesRead: Long = 0
+                    var bytesRead: Long
 
 
                     while (true) {
@@ -468,20 +475,20 @@ open class HttpServiceDefault : HttpService {
     }
 
 
-    inline fun error(responseInfo: ResponseInfo, it: Response) {
+    fun error(responseInfo: ResponseInfo, it: Response) {
         responseInfo.errorInfo.set(it.code(), it.message() + "\n" + it.body().toString(), null)
     }
 
 
-    inline fun error(response: ClientQueryEditor, it: Response) {
+    fun error(response: ClientQueryEditor, it: Response) {
         response.error(it.code(), it.message() + "\n" + it.body().toString(), null)
     }
 
-    inline fun error(responseInfo: ResponseInfo, it: Throwable) {
+    fun error(responseInfo: ResponseInfo, it: Throwable) {
         responseInfo.errorInfo.set(0, it.message, it)
     }
 
-    inline fun error(response: ClientQueryEditor, it: Throwable) {
+    fun error(response: ClientQueryEditor, it: Throwable) {
         response.error(0, it.message, it)
     }
 

@@ -130,11 +130,11 @@ class ParamInfo : ParamReader {
     var chainTypeCreate: ChainType = ChainType.STAND_ALONE
 
 
-    inline fun autoCloseSource() {
+    fun autoCloseSource() {
         options = options.or(OPT_AUTOCLOSE_SOURCE)
     }
 
-    inline fun autoCloseDestination() {
+    fun autoCloseDestination() {
         options = options.or(OPT_AUTOCLOSE_DESTINATION)
     }
 
@@ -171,6 +171,7 @@ class ParamInfo : ParamReader {
 
     //----------------------------------------------------------------
     override fun destination(): DataInfo = destination
+
     override fun isOptionAutoCloseDestination() = options.and(OPT_AUTOCLOSE_DESTINATION) > 0
     override fun source(): DataInfo = source
     override fun isOptionAutoCloseSource(): Boolean = options.and(OPT_AUTOCLOSE_SOURCE) > 0
@@ -179,7 +180,7 @@ class ParamInfo : ParamReader {
     override fun specialParams(): Map<Any, Any?> = namedSpecialParams
     override fun params(): List<Any> = params()
     override fun url(): String? = urlBuilder.url
-    override fun chainTypeCreate():ChainType = chainTypeCreate
+    override fun chainTypeCreate(): ChainType = chainTypeCreate
 
     override fun uiParam(): Any? {
         if (uiObject != null) {

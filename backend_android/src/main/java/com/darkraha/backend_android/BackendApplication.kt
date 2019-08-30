@@ -11,16 +11,21 @@ open class BackendApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        setupBackend()
+
+
+    }
+
+
+    open fun setupBackend() {
         val builder = Backend.Builder()
 
 
         builder.mainThread(AndroidMainThread())
-            .workdir(File(filesDir,"workdir") )
+            .workdir(File(filesDir, "workdir"))
             .setAsShared()
             .imagePlatformHelper(AndroidImagePlatformHelper())
             .build()
-
     }
-
 
 }

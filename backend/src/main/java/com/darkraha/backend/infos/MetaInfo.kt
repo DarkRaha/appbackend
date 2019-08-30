@@ -41,41 +41,42 @@ class MetaInfo : MetaInfoReader {
         outCookies.clear()
     }
 
-    inline fun saveHeaders() = state.or(F_SAVE_HEADERS)
-    inline fun saveCookies() = state.or(F_SAVE_COOKIES)
+    fun saveHeaders() = state.or(F_SAVE_HEADERS)
+    fun saveCookies() = state.or(F_SAVE_COOKIES)
 
 
-    inline fun methodPut() {
+    fun methodPut() {
         method = METHOD_PUT
     }
 
-    inline fun methodGet() {
+    fun methodGet() {
         method = METHOD_GET
     }
 
-    inline fun methodDelete() {
+    fun methodDelete() {
         method = METHOD_DELETE
     }
 
-    inline fun methodHead() {
+    fun methodHead() {
         method = METHOD_HEAD
     }
 
-    inline fun methodPost() {
+    fun methodPost() {
         method = METHOD_POST
     }
 
-    inline fun methodPatch() {
+    fun methodPatch() {
         method = METHOD_PATCH
     }
 
-    inline fun methodOptions() {
+    fun methodOptions() {
         method = METHOD_OPTIONS
     }
 
 
     //---------------------------------------------------------------------------------------
     override fun inputCookies(): Map<String, String> = inCookies
+
     override fun inputHeaders(): Map<String, List<String>> = inHeaders
     override fun method(): String? = method
     override fun outputCookies(): Map<String, String> = outCookies

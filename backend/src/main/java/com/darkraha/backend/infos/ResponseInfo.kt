@@ -125,17 +125,17 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
     }
 
 
-    inline fun setOptionSaveString() {
+    fun setOptionSaveString() {
         responseOptions = responseOptions.or(OPT_RESPONSE_STRING)
     }
 
 
-    inline fun setOptionSaveBytes() {
+    fun setOptionSaveBytes() {
         responseOptions = responseOptions.or(OPT_RESPONSE_BYTES)
     }
 
 
-    inline fun setOptionSaveFile() {
+    fun setOptionSaveFile() {
         responseOptions = responseOptions.or(OPT_RESPONSE_FILE)
     }
 
@@ -143,7 +143,7 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
     /**
      *
      */
-    inline fun setOptionSaveObject() {
+    fun setOptionSaveObject() {
         responseOptions = responseOptions.or(OPT_RESPONSE_OBJECT)
     }
 

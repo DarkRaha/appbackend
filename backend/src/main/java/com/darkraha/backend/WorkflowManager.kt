@@ -130,43 +130,43 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
     }
 
-    inline fun isAllowAppend() = state.isFlag(F_ALLOW_APPEND)
+    fun isAllowAppend() = state.isFlag(F_ALLOW_APPEND)
 
 
-    inline fun hasCallbacks() = callbakFirst != null || callbackLast != null || callbacks.size > 0
+    fun hasCallbacks() = callbakFirst != null || callbackLast != null || callbacks.size > 0
 
     /**
      * Check is query used.
      */
-    inline fun isUsed() = state.isFlag(F_USED)
+    fun isUsed() = state.isFlag(F_USED)
 
     /**
      * Checks if the query is running in background.
      */
-    inline fun isBackground() = state.isFlag(F_BACKGROUND)
+    fun isBackground() = state.isFlag(F_BACKGROUND)
 
     /**
      * Checks, if query is preparing.
      */
-    inline fun isPreparing() = state.isFlag(F_PREPARING)
+    fun isPreparing() = state.isFlag(F_PREPARING)
 
 
-    inline fun isCallbacksDone() = state.isFlag(F_CALLBACKS_DONE)
+    fun isCallbacksDone() = state.isFlag(F_CALLBACKS_DONE)
 
     /**
      * Checks, if query ready for _free.
      */
-    inline fun isReadyForFree() = state.isFlag(F_READY_FOR_FREE)
+    fun isReadyForFree() = state.isFlag(F_READY_FOR_FREE)
 
     /**
      * Checks, if workflow engine can interrupt bacground thread.
      */
-    inline fun isAllowInterrupt() = state.isFlag(F_ALLOW_INTERRUPT)
+    fun isAllowInterrupt() = state.isFlag(F_ALLOW_INTERRUPT)
 
     /**
      * Checks if query handing completed.
      */
-    inline fun isComplete() = state.isFlagAndAny(F_USED, F_SUCCESS, F_ERROR)
+    fun isComplete() = state.isFlagAndAny(F_USED, F_SUCCESS, F_ERROR)
 
 
     fun isWorkflowPossible() = state.isFlagAndNotAny(F_USED, F_SUCCESS, F_ERROR, F_CANCELED)
@@ -194,7 +194,13 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
     }
 
     fun cancel(code: Int = CancelInfo.CANCEL_BY_USER, message: String? = "Canceled by user") {
-        if (state.setFlagMustAnyAndNon(F_CANCELED, F_USED, ERR_QUERY_NOT_USED, F_SUCCESS or F_ERROR))
+        if (state.setFlagMustAnyAndNon(
+                F_CANCELED,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_ERROR
+            )
+        )
 
             if (isAllowInterrupt()) {
 
@@ -223,7 +229,13 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
     fun success(newResult: Any? = null, resultChainType: ChainType = ChainType.UNDEFINED) {
 
-        if (state.setFlagMustAnyAndNon(F_SUCCESS, F_USED, ERR_QUERY_NOT_USED, F_CANCELED or F_ERROR)) {
+        if (state.setFlagMustAnyAndNon(
+                F_SUCCESS,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_CANCELED or F_ERROR
+            )
+        ) {
 
             response.chainTypeResponse = if (resultChainType == ChainType.UNDEFINED) {
                 owner.chainTypeCreate()
@@ -239,7 +251,13 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
 
     fun error(code: Int, msg: String?, e: Throwable?) {
-        if (state.setFlagMustAnyAndNon(F_ERROR, F_USED, ERR_QUERY_NOT_USED, F_SUCCESS or F_CANCELED)) {
+        if (state.setFlagMustAnyAndNon(
+                F_ERROR,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_CANCELED
+            )
+        ) {
             response.errorInfo.set(code, msg, e)
             state.setFlag(F_ERROR)
 
@@ -252,7 +270,13 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
     }
 
     fun error(responseInfo: ResponseInfo) {
-        if (state.setFlagMustAnyAndNon(F_ERROR, F_USED, ERR_QUERY_NOT_USED, F_SUCCESS or F_CANCELED)) {
+        if (state.setFlagMustAnyAndNon(
+                F_ERROR,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_CANCELED
+            )
+        ) {
             response.errorInfo.set(responseInfo.errorInfo)
             state.setFlag(F_ERROR)
 
@@ -265,7 +289,7 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
     }
 
 
-    inline fun error(e: Throwable?) {
+    fun error(e: Throwable?) {
         error(-1, if (e != null) e.message else null, e)
     }
 
@@ -286,20 +310,20 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
         state.setFlag(v, F_ALLOW_APPEND)
     }
 
-    private inline fun setPrepare() {
+    private fun setPrepare() {
         state.setFlag(F_PREPARING)
 
     }
 
-    private inline fun setPrepareDone() {
+    private fun setPrepareDone() {
         state.clearFlag(F_PREPARING)
     }
 
-    private inline fun setRunSync() {
+    private fun setRunSync() {
         state.setFlag(F_RUN_SYNC)
     }
 
-    private inline fun setRunAsync() {
+    private fun setRunAsync() {
         state.clearFlag(F_RUN_SYNC)
     }
 
@@ -336,7 +360,7 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 //        }
 
 
-         mainThread!!.post { exeAsync() }
+        mainThread!!.post { exeAsync() }
         return owner
     }
 
@@ -460,7 +484,7 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
                 }
             }
         } else {
-            finish_end(owner)
+            finish_end()
         }
 
     }
@@ -469,10 +493,10 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
         dispatchWorkflowListeners(WORKFLOW_FINISH_CALLBACK_START)
         dispatchCallbacks(owner)
         dispatchWorkflowListeners(WORKFLOW_FINISH_CALLBACK_END)
-        finish_end(owner)
+        finish_end()
     }
 
-    private fun finish_end(q: Query) {
+    private fun finish_end() {
         dispatchWorkflowListeners(WORKFLOW_FINISH_END)
         queryManager?.onQueryEnd(owner)
         client?.onQueryEnd(owner)
@@ -503,9 +527,9 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
 //-------------------------------------------------------------------------------------------------
 
-    inline private fun dispatchPrepare() = dispatchProcessor(prepareProcessor)
-    inline private fun dispatchPre() = dispatchProcessor(preProcessor)
-    inline private fun dispatchPost() = dispatchProcessor(postProcessor)
+    private fun dispatchPrepare() = dispatchProcessor(prepareProcessor)
+    private fun dispatchPre() = dispatchProcessor(preProcessor)
+    private fun dispatchPost() = dispatchProcessor(postProcessor)
 
 
     /**
@@ -513,6 +537,7 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
      * todo invoking from any thread and post it to the main thread
      */
     fun append(a: WorkflowAppend): Boolean {
+
         state.lock.withLock {
             if (state.flags and F_ALLOW_APPEND > 0) {
                 appended.add(a)

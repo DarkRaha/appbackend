@@ -116,10 +116,7 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
 
             usercallbacks.forEach { cb -> builder.addCallback(cb) }
 
-
-            if (uiParam != null) {
-                uiUrlMap[uiParam] = url
-            }
+            uiUrlMap[uiParam] = url
 
             builder.exeAsync()
         }
@@ -162,8 +159,8 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         imagePlatformHelper.assignImage(cvtImg, ui)
         uiUrlMap.remove(ui)
 
-        if(ep==null || (ep!=null && ep.isAutoAnimate)){
-                imagePlatformHelper.startAnimation(ui)
+        if (ep == null || (ep != null && ep.isAutoAnimate)) {
+            imagePlatformHelper.startAnimation(ui)
         }
 
         return true

@@ -11,25 +11,25 @@ class UIProgressListener(private var progressBar: ProgressBar) : ProgressListene
     internal var prev = 0f
 
 
-    override fun onProgress(read: Long, total: Long) {
+    override fun onProgress(current: Long, total: Long) {
 
         if (percent == 0f) {
             percent = total / 100f
         }
 
-        if (read - prev > percent || read >= total) {
-            progressBar?.progress = (100 * read / total).toInt()
+        if (current - prev > percent || current >= total) {
+            progressBar?.progress = (100 * current / total).toInt()
 
         }
     }
 
     override fun onStart() {
-        progressBar?.visibility = View.VISIBLE
-        progressBar?.progress = 0
+        progressBar.visibility = View.VISIBLE
+        progressBar.progress = 0
     }
 
     override fun onEnd() {
-        progressBar?.visibility = View.GONE
+        progressBar.visibility = View.GONE
     }
 
 }

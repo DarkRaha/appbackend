@@ -27,7 +27,8 @@ class Query(
     ServiceWorkflowHelper,
     ParamReader by params,
     MetaInfoReader by meta,
-    WorkflowStateReader by workflow, WorkflowReader by workflow, Workflow by workflow, WorkflowExecutor by workflow,
+    WorkflowStateReader by workflow, WorkflowReader by workflow, Workflow by workflow,
+    WorkflowExecutor by workflow,
     ResultReader by workflow.response, ResultOptionsReader by workflow.response,
     ErrorReader by workflow.response.errorInfo {
 
@@ -139,107 +140,6 @@ class Query(
     //------------------------------------------------------------------------------------------
     // Reader
 
-//    override fun chainTypeResponse(): ChainType {
-//        return this.workflow.response.chainTypeResponse;
-//    }
-//
-//
-//    override fun resultCode(): Int {
-//        return this.workflow.response.resultCode
-//    }
-//
-//    override fun resultMessage(): String? {
-//        return this.workflow.response.resultMessage
-//    }
-//
-//    override fun result(): Any? {
-//        return this.workflow.response.result
-//    }
-//
-//    override fun rawMimetype(): String? {
-//        return this.workflow.response.rawMimetype
-//    }
-//
-//    override fun rawSize(): Long {
-//        return this.workflow.response.rawSize
-//    }
-//
-//    override fun rawString(): String? {
-//        return this.workflow.response.rawResultString
-//    }
-//
-//    override fun rawBytes(): ByteArray? {
-//        return this.workflow.response.rawResultBytes
-//    }
-//
-//    override fun resultFile(): File? {
-//        return this.workflow.response.rawResultFile
-//    }
-
-
-
-//    override fun method(): String? {
-//        return meta.method
-//    }
-//
-//    override fun outputHeaders(): Map<String, List<String>> {
-//        return meta.outHeaders
-//    }
-//
-//    override fun outputCookies(): Map<String, String> {
-//        return meta.outCookies
-//    }
-//
-//    override fun inputHeaders(): Map<String, List<String>> {
-//        return meta.inHeaders
-//    }
-//
-//    override fun inputCookies(): Map<String, String> {
-//        return meta.inCookies
-//    }
-//
-//    override fun isOptionSaveOutputHeaders(): Boolean {
-//        return meta.isSaveHeaders()
-//    }
-//
-//    override fun isOptionSaveOutputCookies(): Boolean {
-//        return meta.isSaveCookies()
-//    }
-
-//    override fun service(): Service? {
-//        return this.workflow.service
-//    }
-//
-//    override fun client(): ClientBase? {
-//        return this.workflow.client
-//    }
-//
-//    override fun lock(): ReentrantLock {
-//        return this.workflow.lock
-//    }
-//
-//
-//
-//    override fun workflowStep(): Int {
-//        return this.workflow.workflowStep
-//    }
-
-
-//    override fun errorCallbacks(): List<Throwable> {
-//        return this.workflow.response.errorInfo.exceptionsCallbacks
-//    }
-//
-//    override fun errorCode(): Int {
-//        return this.workflow.response.errorInfo.code
-//    }
-//
-//    override fun errorException(): Throwable? {
-//        return this.workflow.response.errorInfo.exception
-//    }
-//
-//    override fun errorMessage(): String? {
-//        return this.workflow.response.errorInfo.message
-//    }
 
     override fun getCommand(): String? {
         return _command
@@ -538,7 +438,7 @@ class Query(
 
     override fun progressListener(block: (current: Long, total: Long) -> Unit): WorkflowBuilder1 {
         this.workflow.progressListener = object : ProgressListener {
-            inline override fun onProgress(current: Long, total: Long) {
+            override fun onProgress(current: Long, total: Long) {
                 block(current, total)
             }
         }
@@ -567,61 +467,11 @@ class Query(
         return this
     }
 
-    //---------------------------------------------------------------------------
-//    override fun exeAsync(): UserQuery {
-//        this.workflow.exeAsync()
-//        return this
-//    }
-//
-//    override fun postExeAsync(): UserQuery {
-//        this.workflow.postExeAsync()
-//        return this
-//    }
-//
-//    override fun exeSync(): UserQuery {
-//        this.workflow.exeSync()
-//        return this
-//    }
 
-    //---------------------------------------------------------------------------
-    // workflow state
+    //  fun asQueryBuilder() = this as QueryBuilder<T:>
+    fun asQueryReader() = this as UserQuery
 
-//    override fun isSuccess(): Boolean {
-//        return this.workflow.isSuccess()
-//    }
-//
-//    override fun isCanceled(): Boolean {
-//        return this.workflow.isCanceled()
-//    }
-//
-//    override fun isError(): Boolean {
-//        return this.workflow.isError()
-//    }
-//
-//    override fun isFinished(): Boolean {
-//        return this.workflow.isFinished()
-//    }
-
-    //---------------------------------------------------------------------------
-
-
-//    override fun waitAfterFree() {
-//        this.workflow.waitAfterFree()
-//    }
-//
-//    override fun free() {
-//        this.workflow.free()
-//    }
-//
-//    override fun waitFinish(): UserQuery {
-//        this.workflow.waitFinish()
-//        return this
-//    }
-
-    // inline fun asQueryBuilder() = this as QueryBuilder<T:>
-    inline fun asQueryReader() = this as UserQuery
-
-    inline fun asWorkflowBuilder() = this as WorkflowBuilder1
+    fun asWorkflowBuilder() = this as WorkflowBuilder1
 
     fun clear() {
         _command = null

@@ -35,7 +35,7 @@ proguard/
 # Intellij project files
 *.iml
 
-# Gradle files
-gradlew*
+# Gradle files, need for jitpack
+# gradlew*
 
 .DS_Store
