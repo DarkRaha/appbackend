@@ -3,11 +3,13 @@ package com.darkraha.backend.components.images
 import com.darkraha.backend.*
 import com.darkraha.backend.components.endecode.BinaryFileDecoder
 import com.darkraha.backend.extraparams.ImageLoadEP
+import org.awaitility.kotlin.await
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.InputStream
+import java.util.concurrent.TimeUnit
 
 class ImageManagerDefaultTest {
 
@@ -16,12 +18,98 @@ class ImageManagerDefaultTest {
     val tmpFolder = TemporaryFolder()
 
     val imageManager = ImageManagerClientDefault.newInstance()
+    @Volatile
     var isSuccess = false
+
+    @Volatile
+    var isCanceled = false
+
+    @Volatile
+    var isFinished = false
+
+    init {
+        imageManager.attachImagePlatformHelper(ImagePlatformHelperTest())
+    }
+
+
+    @Test
+    fun testCancelLoad() {
+        imageManager.getDiskcache().buildClear().exeSync()
+        isCanceled = false
+        isSuccess = false
+
+        val cb = object : QueryCallback {
+
+            override fun onCancel(query: UserQuery) {
+                isCanceled = true
+            }
+
+            override fun onSuccess(query: UserQuery) {
+                isSuccess = true
+            }
+
+            override fun onError(query: UserQuery) {
+                println(query.errorMessage())
+                query.errorException()?.printStackTrace()
+            }
+
+
+            override fun onFinish(query: UserQuery) {
+                isFinished = true
+
+            }
+        }
+
+        val url = "https://pm1.narvii.com/6652/96cfbc896f4f277f98f09d049bd835baed62a0bf_hq.jpg"
+        val imageUi = ImageUi()
+
+        var query = imageManager.buildLoad(url, imageUi, cb, null, null)
+            .addWorkflowListener() {
+
+                if (it.workflowStep() == 3) {
+                    await.atLeast(5000L, TimeUnit.MILLISECONDS)
+                }
+            }
+            .exeAsync()
+
+        await.atLeast(2000L, TimeUnit.MILLISECONDS)
+        imageManager.cancelLoad(imageUi)
+
+        await.atMost(10000, TimeUnit.MILLISECONDS).until {
+            isFinished
+        }
+
+        assert(isCanceled)
+        isCanceled = false
+        isFinished = false
+
+
+        imageManager.getDiskcache().buildClear().exeSync()
+        query = imageManager.buildLoad(url, null, cb, null, null)
+            .addWorkflowListener() {
+                if (it.workflowStep() == 3) {
+                    await.atLeast(5000L, TimeUnit.MILLISECONDS)
+                }
+            }
+            .exeAsync()
+
+        await.atLeast(2000L, TimeUnit.MILLISECONDS)
+        imageManager.cancelLoad(imageUi)
+
+        await.atMost(10000, TimeUnit.MILLISECONDS).until {
+            isFinished
+        }
+
+        assert(!isCanceled)
+        assert(isSuccess)
+        imageManager.getDiskcache().buildClear().exeSync()
+        imageManager.getDiskcache().getWorkDir().delete()
+    }
 
 
     @Test
     fun testLoadFile() {
-        imageManager.attachImagePlatformHelper(ImagePlatformHelperTest())
+
         assertTrue(imageManager.endecoder.getDecodersList().size == 2)
 
         imageManager.getDiskcache().buildClear().exeSync()
@@ -126,12 +214,12 @@ class ImageManagerDefaultTest {
         }
 
         override fun assignImage(img: Any?, ui: Any) {
-println("test assign 1")
+            println("test assign 1")
             if (ui is ImageUi && img is ImageTest) {
-                println("test assign 2 "+img)
+                println("test assign 2 " + img)
                 ui.image = img
-            }else{
-                println("ui "+ui.javaClass+ " img "+img?.javaClass)
+            } else {
+                println("ui " + ui.javaClass + " img " + img?.javaClass)
             }
         }
 
@@ -150,7 +238,12 @@ println("test assign 1")
 
 
     class JpegTstDecoder :
-        BinaryFileDecoder("image/jpeg", arrayOf("jpeg", "jpg"), ImageTest::class, ImageLoadEP::class) {
+        BinaryFileDecoder(
+            "image/jpeg",
+            arrayOf("jpeg", "jpg"),
+            ImageTest::class,
+            ImageLoadEP::class
+        ) {
 
 
         override fun onDecoding(inStream: InputStream, dst: Any?, extraParam: Any?): Any? {
@@ -169,7 +262,8 @@ println("test assign 1")
     }
 
 
-    class PngTstDecoder : BinaryFileDecoder("image/png", arrayOf("png"), ImageTest::class, ImageLoadEP::class) {
+    class PngTstDecoder :
+        BinaryFileDecoder("image/png", arrayOf("png"), ImageTest::class, ImageLoadEP::class) {
 
 
         override fun onDecoding(inStream: InputStream, dst: Any?, extraParam: Any?): Any? {

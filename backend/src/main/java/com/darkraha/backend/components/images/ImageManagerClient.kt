@@ -18,6 +18,7 @@ interface ImageManagerClient : Client {
     fun addImageDecoder(imageDeoder: FileDecoder)
     fun attachImagePlatformHelper(imgHelper: ImagePlatformHelper)
     fun getDiskcache(): DiskCacheClient
+    fun cancelLoad(ui: Any)
     /**
      * @return file that correspond to url. File exist when it downloaded.
      */

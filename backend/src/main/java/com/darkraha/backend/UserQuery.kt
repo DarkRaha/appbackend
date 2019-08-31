@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 interface UserQuery : ResultReader, ResultOptionsReader,
     ParamReader, ErrorReader,
     MetaInfoReader, Workflow,
-    WorkflowStateReader, WorkflowReader{
+    WorkflowState, WorkflowReader{
 
     //-------------------------------------------------------------
     //  other

@@ -32,19 +32,19 @@ interface WorkflowExecutor {
     fun exeSync(): UserQuery
 }
 
-interface WorkflowStateReader {
+interface WorkflowState {
     fun isSuccess(): Boolean
     fun isError(): Boolean
     fun isCanceled(): Boolean
     fun isFinished(): Boolean
-
+    fun cancel()
+    fun workflowStep(): Int
 }
 
 interface WorkflowReader {
     fun service(): Service?
     fun client(): ClientBase?
     fun lock(): ReentrantLock
-    fun workflowStep(): Int
 //    fun chainTypeCreate(): ChainType
 //    fun chainTypeResponse(): ChainType
 }
@@ -74,7 +74,7 @@ interface Workflow {
  *
  * @author Verma Rahul
  */
-class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowExecutor {
+class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor {
 
     lateinit var owner: Query
     val response = ResponseInfo()
@@ -194,16 +194,15 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
     }
 
     fun cancel(code: Int = CancelInfo.CANCEL_BY_USER, message: String? = "Canceled by user") {
+
         if (state.setFlagMustAnyAndNon(
                 F_CANCELED,
                 F_USED,
                 ERR_QUERY_NOT_USED,
                 F_SUCCESS or F_ERROR
             )
-        )
-
+        ) {
             if (isAllowInterrupt()) {
-
                 synchronized(syncBg) {
                     try {
                         bgThread?.let {
@@ -216,15 +215,15 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
                     }
                 }
             }
+            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
+                ChainType.STAND_ALONE
+            } else {
+                ChainType.LAST_ELEMENT
+            }
 
-        response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
-            ChainType.STAND_ALONE
-        } else {
-            ChainType.LAST_ELEMENT
+            response.cancelInfo.set(code, message)
         }
-
-        response.cancelInfo.set(code, message)
-    }
+      }
 
 
     fun success(newResult: Any? = null, resultChainType: ChainType = ChainType.UNDEFINED) {
@@ -422,26 +421,21 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
 
     private fun background() {
-
         synchronized(syncBg) {
             setBackground(true)
             bgThread = Thread.currentThread()
         }
-
         dispatchProgressStart()
         dispatchWorkflowListeners(WORKFLOW_BACKGROUND_START)
-
         if (syncResource != null) {
             LockManager.lock(syncResource!!)
         }
-
         runCatching {
             if (isWorkflowPossible()) {
                 dispatchPre()
                 service!!.handle(owner, owner, owner)
                 dispatchPost()
             } else {
-                println("workflow not possible")
                 //todo error
             }
 
@@ -449,7 +443,6 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
             error(it)
             it.printStackTrace()
         }
-
         if (syncResource != null) {
             LockManager.unLock(syncResource!!)
         }
@@ -460,14 +453,12 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
             bgThread = null
         }
 
-
         success()
         dispatchWorkflowListeners(WORKFLOW_BACKGROUND_END)
     }
 
 
     private fun finish() {
-
 
         dispatchWorkflowListeners(WORKFLOW_FINISH_START)
 
@@ -844,7 +835,6 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
 
     private fun dispatchWorkflowListeners(newStep: Int) {
         workflowStep = newStep
-
         synchronized(workflowListener) {
             workflowListener.forEach {
                 try {
@@ -1042,6 +1032,9 @@ class WorkflowManager : WorkflowStateReader, WorkflowReader, Workflow, WorkflowE
         return appended
     }
 
+    override fun cancel() {
+        cancel(-1)
+    }
 //----------------------------------------------------------------------------------------
 
 }

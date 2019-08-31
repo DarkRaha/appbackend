@@ -27,7 +27,7 @@ class Query(
     ServiceWorkflowHelper,
     ParamReader by params,
     MetaInfoReader by meta,
-    WorkflowStateReader by workflow, WorkflowReader by workflow, Workflow by workflow,
+    WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
     WorkflowExecutor by workflow,
     ResultReader by workflow.response, ResultOptionsReader by workflow.response,
     ErrorReader by workflow.response.errorInfo {

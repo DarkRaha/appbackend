@@ -9,6 +9,8 @@ import com.darkraha.backend.components.images.ImageManagerClient
 import com.darkraha.backend.components.images.ImageManagerClientDefault
 import com.darkraha.backend.components.images.ImagePlatformHelper
 import com.darkraha.backend.components.images.ImagePlatformHelperEmpty
+import com.darkraha.backend.components.json.JsonManager
+import com.darkraha.backend.components.json.JsonManagerDefault
 import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.components.mainthread.MainThreadDefault
 import com.darkraha.backend.components.qmanager.QueryManager
@@ -29,6 +31,8 @@ open class Backend private constructor() {
     lateinit var executor: ExecutorService
         protected set
 
+    lateinit var jsonManager: JsonManager
+        protected set
 
     lateinit var mainThread: MainThread
         protected set
@@ -98,7 +102,10 @@ open class Backend private constructor() {
     }
 
     companion object {
+        @JvmStatic
         lateinit var sharedInstance: Backend
+            protected set
+
 
         @JvmStatic
         fun newInstance(): Backend {
@@ -130,6 +137,7 @@ open class Backend private constructor() {
         private var _asShared = false
         private var _imagePlatformHelper: ImagePlatformHelper? = null
         private var _workdir: File? = null
+        private var _jsonManager: JsonManager? = null
 
 
         fun setAsShared(): Builder {
@@ -178,8 +186,14 @@ open class Backend private constructor() {
             return this
         }
 
+        fun jsonManager(jm: JsonManager): Builder {
+            _jsonManager = jm
+            return this
+        }
+
         fun build(): Backend {
 
+            result.jsonManager = _jsonManager ?: JsonManagerDefault()
             result.mainThread = _mainThread ?: MainThreadDefault()
             result.queryManager = _queryManager ?: QueryManagerDefault()
             result.workdir = _workdir ?: File("workdir")
@@ -190,10 +204,12 @@ open class Backend private constructor() {
                     .workdir(File(result.workdir, "diskcache"))
                     .build()
 
-            result.httpClient = _httpClient ?: HttpClientDefault.Builder().mainThread(result.mainThread).build()
+            result.httpClient =
+                _httpClient ?: HttpClientDefault.Builder().mainThread(result.mainThread).build()
 
             result.endecodeClient =
-                _endecodeClient ?: EndecodeClientDefault.Builder().mainThread(result.mainThread).build()
+                _endecodeClient
+                    ?: EndecodeClientDefault.Builder().mainThread(result.mainThread).build()
 
             result.imageManager = _imageManager ?: ImageManagerClientDefault.Builder()
                 .mainThread(result.mainThread)

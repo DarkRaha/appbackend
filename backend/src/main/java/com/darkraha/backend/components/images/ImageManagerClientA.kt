@@ -147,6 +147,8 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     }
 
 
+
+
     protected fun assignImage(img: Any?, ui: Any?, ep: ImageLoadEP?): Boolean {
 
         if (img == null || ui == null) {
@@ -164,6 +166,10 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         }
 
         return true
+    }
+
+    override fun cancelLoad(ui: Any) {
+       loadingFiles[uiUrlMap[ui]]?.cancel()
     }
 
     override fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
