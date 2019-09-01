@@ -91,6 +91,16 @@ open class Backend private constructor() {
         }
     }
 
+    fun exeAsync(runnable: Runnable, cb: Runnable? = null) {
+        executor.execute {
+            runnable.run()
+            if (cb != null) {
+                mainThread.post { cb.run() }
+            }
+        }
+    }
+
+
     inline fun exeAsync(noinline block: () -> Unit) = exeAsync(block, null)
 
 

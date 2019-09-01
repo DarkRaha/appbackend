@@ -4,7 +4,7 @@ import java.lang.reflect.Type
 import kotlin.reflect.KClass
 
 interface JsonManager {
-    fun <T : Any> fromJson(src: String, clsDst: KClass<T>): T
+    fun <T> fromJson(src: String, clsDst: Class<T>): T
 
     /**
      * @param src
@@ -13,12 +13,9 @@ interface JsonManager {
      * @param <T>
      * @return
     </T></SRC> */
-    fun <SRC : Any, T : Any> fromJson(src: SRC, clsDst: KClass<T>): T
+    fun <SRC : Any, T > fromJson(src: SRC, clsDst: Class<T>): T
 
     fun toJson(obj: Any): String
 
     fun addTypeAdapter(type: Type, typeAdapter: Any)
 }
-
-
-
