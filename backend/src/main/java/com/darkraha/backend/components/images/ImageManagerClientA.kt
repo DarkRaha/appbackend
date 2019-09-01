@@ -152,7 +152,6 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     protected fun assignImage(img: Any?, ui: Any?, ep: ImageLoadEP?): Boolean {
 
         if (img == null || ui == null) {
-            println("can not assign image")
             return false
         }
 

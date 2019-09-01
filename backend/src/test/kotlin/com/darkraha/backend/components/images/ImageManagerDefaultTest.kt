@@ -214,12 +214,9 @@ class ImageManagerDefaultTest {
         }
 
         override fun assignImage(img: Any?, ui: Any) {
-            println("test assign 1")
             if (ui is ImageUi && img is ImageTest) {
-                println("test assign 2 " + img)
                 ui.image = img
             } else {
-                println("ui " + ui.javaClass + " img " + img?.javaClass)
             }
         }
 

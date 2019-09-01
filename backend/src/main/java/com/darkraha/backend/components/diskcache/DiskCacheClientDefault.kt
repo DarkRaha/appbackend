@@ -53,7 +53,12 @@ open class DiskCacheClientDefault protected constructor() : ClientBase(), DiskCa
     /**
      * Cleans old data in disk cache asynchronously.
      */
-    override fun clean(maxTime: Long, minTime: Long, toSize: Long, cb: Callback<UserQuery>?): UserQuery {
+    override fun clean(
+        maxTime: Long,
+        minTime: Long,
+        toSize: Long,
+        cb: Callback<UserQuery>?
+    ): UserQuery {
         return buildClean(maxTime, minTime, toSize).addCallback(cb).exeAsync()
     }
 
@@ -72,7 +77,11 @@ open class DiskCacheClientDefault protected constructor() : ClientBase(), DiskCa
 
     //---------------------------------------------------------------------------------------------------------------
 
-    override fun buildClean(maxTime: Long, minTime: Long, toSize: Long): QueryBuilder<WorkflowBuilder1> {
+    override fun buildClean(
+        maxTime: Long,
+        minTime: Long,
+        toSize: Long
+    ): QueryBuilder<WorkflowBuilder1> {
         return prepareQuery().command(DiskCacheConsts.CMD_CLEANUP)
             .addNamedSpecialParam(Param.PARAM_OLD_TIME_MAX, maxTime)
             .addNamedSpecialParam(Param.PARAM_OLD_TIME_MIN, minTime)
@@ -99,13 +108,23 @@ open class DiskCacheClientDefault protected constructor() : ClientBase(), DiskCa
 
         override fun newResult(): DiskCacheClientDefault = DiskCacheClientDefault()
 
-        override fun defaultService(): Service {
-            return DiskCacheServiceDefault(_workdir ?: File("diskcache"))
+        override fun checkService() {
+            if (_service == null) {
+                _service = DiskCacheServiceDefault(_workdir ?: File("diskcache"))
+            }
         }
 
-        override fun defaultWorkdir(): File {
-            return result.srv().getWorkdir()
+        override fun checkWorkdir() {
+            if (_workdir == null) {
+                _workdir = if (_backend != null) {
+                    File(_backend!!.workdir, "diskcache")
+                } else {
+                    _service?.getWorkdir() ?: File("diskcache")
+                }
+                _workdir!!.mkdirs()
+            }
         }
+
 
         fun allowChange(v: Boolean): Builder {
             _allowChange = v

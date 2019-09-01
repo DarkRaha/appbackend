@@ -56,6 +56,7 @@ interface QueryManager : QueryLifeListener {
 
 /**
  * Default implementation of QueryManager.
+ * todo awaitility
  *
  * @author Verma Rahul
  */
@@ -65,8 +66,6 @@ open class QueryManagerDefault : QueryManager {
     protected val condEmptyExecuted = lock.newCondition()
     protected val condQueryExecuted = lock.newCondition()
     protected val freeList = mutableListOf<Query>()
-
-
     protected val executedCount = AtomicInteger()
 
 
@@ -138,7 +137,7 @@ open class QueryManagerDefault : QueryManager {
 
     override fun waitEmpty(time: Long, timeUnit: TimeUnit) {
 
-        if(executedCount.get()==0){
+        if (executedCount.get() == 0) {
             return
         }
 
@@ -153,7 +152,7 @@ open class QueryManagerDefault : QueryManager {
     }
 
     override fun waitQuery(time: Long, timeUnit: TimeUnit) {
-        if(executedCount.get()==0){
+        if (executedCount.get() == 0) {
             return
         }
 

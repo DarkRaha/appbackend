@@ -34,9 +34,9 @@ abstract class FileDecoder(
 //
 //
 //        println(" ext size = " + srcFileExtensions.size+ " ext "+(src as File).extension.toLowerCase())
-        srcFileExtensions.forEach {
-            print(" "+it)
-        }
+//        srcFileExtensions.forEach {
+//            print(" "+it)
+//        }
 
         return (srcMimetype == aSrcMimetype ||
                 (srcFileExtensions.size == 0 || src is File && src.extension.toLowerCase() in srcFileExtensions))

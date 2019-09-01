@@ -189,6 +189,7 @@ open class ClientBase : Client, QueryLifeListener {
         protected var _executorService: ExecutorService? = null
         protected var _mainThread: MainThread? = null
         protected var _queryManager: QueryManager? = null
+        protected var _backend: Backend? = null
 
 
         init {
@@ -199,19 +200,53 @@ open class ClientBase : Client, QueryLifeListener {
 
         protected abstract fun newResult(): TClient
 
-        open protected fun defaultMainThread(): MainThread = MainThreadDefault()
 
-        open protected fun defaultWorkdir(): File? = File("workdir")
+        open protected fun checkWorkdir() {
+            if (_workdir == null) {
+                _workdir = _backend?.workdir ?: File("workdir")
+                _workdir!!.mkdirs()
+            }
+        }
 
-        open protected fun defaultService(): Service? = throw IllegalStateException("Default service not supported.")
+        open protected fun checkMainthread() {
+            if (_mainThread == null) {
+                _mainThread = _backend?.mainThread ?: MainThreadDefault()
+            }
+        }
+
+
+        open protected fun checkService(){
+            if(_service==null){
+                throw IllegalStateException("Service not assigned.")
+            }
+        }
+
+        open protected fun checkExecutor() {
+            if(_service!=null){
+                if(_executorService==null){
+                    _executorService = defaultExecuterService()
+                }
+            }
+
+        }
+
+        open protected fun checkQueryManager(){
+            if(_queryManager==null){
+                _queryManager = _backend?.queryManager ?:  QueryManagerDefault()
+            }
+        }
 
         open protected fun defaultExecuterService(): ExecutorService? = ThreadPoolExecutor(
             0, 6, 2L, TimeUnit.MINUTES,
             LinkedBlockingQueue<Runnable>()
         )
 
-        open protected fun defaultQueryManager(): QueryManager = QueryManagerDefault()
 
+
+        open fun backend(back: Backend): Builder {
+            _backend = back
+            return builder
+        }
 
         fun workdir(wd: File): Builder {
             _workdir = wd
@@ -239,18 +274,18 @@ open class ClientBase : Client, QueryLifeListener {
         }
 
         open fun build(): TClient {
-            result.queryManager = _queryManager ?: defaultQueryManager()
-            result.mainThread = _mainThread ?: defaultMainThread()
-            result.service = _service ?: defaultService()
-            result.executorService = _executorService ?: defaultExecuterService()
+            checkWorkdir()
+            checkMainthread()
+            checkQueryManager()
+            checkService()
+            checkExecutor()
 
-            if (_workdir == null) {
-                _workdir = defaultWorkdir()
-            }
-            if (_workdir != null) {
-                result.workdir = _workdir!!
-                result.workdir.mkdirs()
-            }
+            result.queryManager = _queryManager!!
+            result.mainThread = _mainThread!!
+            result.service = _service
+            result.executorService = _executorService
+            result.workdir = _workdir!!
+
             return result
         }
 

@@ -90,8 +90,10 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
             return HttpClientDefault()
         }
 
-        override fun defaultService(): Service {
-            return HttpServiceDefault()
+        override fun checkService() {
+            if (_service == null) {
+                _service = HttpServiceDefault()
+            }
         }
     }
 

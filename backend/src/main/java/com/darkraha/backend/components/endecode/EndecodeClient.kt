@@ -46,9 +46,19 @@ interface EndecodeClient : Client {
     }
 
 
-    fun prepareEncode(src: Any, dst: File, extra: Any? = null, cb: Callback<UserQuery>? = null): Query
+    fun prepareEncode(
+        src: Any,
+        dst: File,
+        extra: Any? = null,
+        cb: Callback<UserQuery>? = null
+    ): Query
 
-    fun encode(src: Any, dst: File, extra: Any? = null, cb: Callback<UserQuery>? = null): UserQuery {
+    fun encode(
+        src: Any,
+        dst: File,
+        extra: Any? = null,
+        cb: Callback<UserQuery>? = null
+    ): UserQuery {
         return prepareEncode(src, dst, extra, cb).exeAsync()
     }
 
@@ -104,7 +114,8 @@ open class EndecodeClientDefault protected constructor() : EndecodeClient, Clien
 
     override fun prepareEncode(src: Any, dst: File, extra: Any?, cb: Callback<UserQuery>?): Query {
         val ret = prepareQuery()
-        ret.source(src).destination(dst).extraParam(extra).command(EndecodeConsts.CMD_ENCODE).addCallback(cb)
+        ret.source(src).destination(dst).extraParam(extra).command(EndecodeConsts.CMD_ENCODE)
+            .addCallback(cb)
         return ret
     }
 
@@ -115,10 +126,11 @@ open class EndecodeClientDefault protected constructor() : EndecodeClient, Clien
             return EndecodeClientDefault()
         }
 
-        override fun defaultService(): Service {
-            return EndecodeServiceDefault()
+        override fun checkService() {
+            if (_service == null) {
+                _service = EndecodeServiceDefault()
+            }
         }
-
     }
 
     companion object {

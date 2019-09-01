@@ -140,6 +140,12 @@ class Query(
     //------------------------------------------------------------------------------------------
     // Reader
 
+    override fun getCmdQueryId(): String? {
+        if (_command == null && _queryId == null) {
+            return null
+        }
+        return (_command ?: "") + "_" + (_queryId ?: "")
+    }
 
     override fun getCommand(): String? {
         return _command
@@ -148,7 +154,6 @@ class Query(
     override fun getQueryId(): String? {
         return _queryId
     }
-
 
     override fun getComment(): String? {
         return params.comment

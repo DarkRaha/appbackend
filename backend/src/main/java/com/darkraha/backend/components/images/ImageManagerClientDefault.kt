@@ -95,7 +95,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         var _diskCacheClient: DiskCacheClient? = null
         var _httpClient: HttpClient? = null
         var _endecodeClient: EndecodeClient? = null
-        var _imagePlatformHelper: ImagePlatformHelper? = null
+        var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperEmpty()
 
         override fun newResult(): ImageManagerClientDefault {
             return ImageManagerClientDefault()
@@ -122,42 +122,60 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         }
 
 
-        override fun defaultService(): Service? {
-            return null
+        override fun checkService() {
+
         }
 
-        override fun defaultExecuterService(): ExecutorService? {
-            return null
+        override fun checkWorkdir() {
+            _workdir = _diskCacheClient?.getWorkDir()
+            super.checkWorkdir()
         }
+
+        open fun checkDiskcache() {
+            if (_diskCacheClient == null) {
+                if (_backend != null) {
+                    _diskCacheClient = _backend!!.diskCacheClient
+                } else {
+                    val dcBuilder = DiskCacheClientDefault.Builder()
+                    if (_workdir != null) {
+                        dcBuilder.workdir(_workdir!!)
+                    }
+
+                    dcBuilder.queryManager(_queryManager!!)
+                    _diskCacheClient = dcBuilder.build()
+                }
+            }
+        }
+
+        open fun checkHttpClient() {
+            if (_httpClient == null) {
+                _httpClient = _backend?.httpClient ?: HttpClientDefault.Builder().queryManager(
+                    _queryManager!!
+                ).build()
+            }
+        }
+
+        open fun checkEndecodeClient() {
+            if (_endecodeClient == null) {
+                _endecodeClient = _backend?.endecodeClient
+                    ?: EndecodeClientDefault.Builder().queryManager(result.queryManager).build()
+            }
+        }
+
 
         override fun build(): ImageManagerClientDefault {
             super.build()
-            if (_diskCacheClient != null) {
-                _workdir = _diskCacheClient!!.getWorkDir()
-            }
-
-            result.httpClient = _httpClient ?: HttpClientDefault.Builder().queryManager(result.queryManager).build()
-
-
-            if (_diskCacheClient == null) {
-                val dcBuilder = DiskCacheClientDefault.Builder()
-                if (_workdir != null) {
-                    dcBuilder.workdir(_workdir!!)
-                }
-
-                dcBuilder.queryManager(result.queryManager)
-                _diskCacheClient = dcBuilder.build()
-            }
+            checkDiskcache()
+            checkHttpClient()
+            checkEndecodeClient()
 
             result.diskCacheClient = _diskCacheClient!!
-            _workdir = result.diskCacheClient.getWorkDir()
-            result.workdir = _workdir!!
-            result.workdir.mkdirs()
-
-            result.endecoder =
-                _endecodeClient ?: EndecodeClientDefault.Builder().queryManager(result.queryManager).build()
+            result.httpClient = _httpClient!!
+            result.endecoder = _endecodeClient!!
             result.imagePlatformHelper = _imagePlatformHelper ?: ImagePlatformHelperEmpty()
+
             result.attachImagePlatformHelper(result.imagePlatformHelper)
+
             return result
         }
 

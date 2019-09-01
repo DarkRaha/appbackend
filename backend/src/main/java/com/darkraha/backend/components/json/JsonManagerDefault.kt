@@ -6,6 +6,7 @@ import com.google.gson.JsonElement
 import com.google.gson.stream.JsonReader
 import java.lang.reflect.Type
 import java.util.HashMap
+import kotlin.reflect.KClass
 
 class JsonManagerDefault : JsonManager {
 
@@ -13,20 +14,20 @@ class JsonManagerDefault : JsonManager {
     protected var adapters: HashMap<Type, Any>? = HashMap()
     protected var applied = false
 
-    override fun <T> fromJson(src: String, clsDst: Class<T>): T {
+    override fun <T: Any> fromJson(src: String, clsDst: KClass<T>): T {
         apply()
-        return gson!!.fromJson(src, clsDst)
+        return gson!!.fromJson(src, clsDst.java)
     }
 
 
-    override fun <SRC:Any, T> fromJson(src: SRC, clsDst: Class<T>): T {
+    override fun <SRC:Any, T: Any> fromJson(src: SRC, clsDst: KClass<T>): T {
         apply()
 
 
         return when {
             src == null -> throw IllegalArgumentException("src can not be null")
-            src is JsonElement -> gson.fromJson(src as JsonElement, clsDst)
-            src is JsonReader -> gson.fromJson(src as JsonReader, clsDst)
+            src is JsonElement -> gson.fromJson(src as JsonElement, clsDst.java)
+            src is JsonReader -> gson.fromJson(src as JsonReader, clsDst.java)
             else -> {
                 throw IllegalArgumentException("Class " + src::class + " not supported by JsonManager")
             }

@@ -1,9 +1,10 @@
 package com.darkraha.backend.components.json
 
 import java.lang.reflect.Type
+import kotlin.reflect.KClass
 
 interface JsonManager {
-     fun <T> fromJson(src: String, clsDst: Class<T>): T
+    fun <T : Any> fromJson(src: String, clsDst: KClass<T>): T
 
     /**
      * @param src
@@ -12,9 +13,12 @@ interface JsonManager {
      * @param <T>
      * @return
     </T></SRC> */
-     fun <SRC:Any, T> fromJson(src: SRC, clsDst: Class<T>): T
+    fun <SRC : Any, T : Any> fromJson(src: SRC, clsDst: KClass<T>): T
 
-     fun toJson(obj: Any): String
+    fun toJson(obj: Any): String
 
-     fun addTypeAdapter(type: Type, typeAdapter: Any)
+    fun addTypeAdapter(type: Type, typeAdapter: Any)
 }
+
+
+

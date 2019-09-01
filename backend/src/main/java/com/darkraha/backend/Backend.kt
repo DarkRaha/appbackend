@@ -103,8 +103,11 @@ open class Backend private constructor() {
 
     companion object {
         @JvmStatic
-        lateinit var sharedInstance: Backend
+        var _sharedInstance: Backend? = null
             protected set
+
+
+        val sharedInstance get() = _sharedInstance!!
 
 
         @JvmStatic
@@ -200,16 +203,15 @@ open class Backend private constructor() {
 
             result.diskCacheClient =
                 _diskCacheClient ?: DiskCacheClientDefault.Builder()
-                    .mainThread(result.mainThread)
-                    .workdir(File(result.workdir, "diskcache"))
+                    .backend(result)
                     .build()
 
             result.httpClient =
-                _httpClient ?: HttpClientDefault.Builder().mainThread(result.mainThread).build()
+                _httpClient ?: HttpClientDefault.Builder().backend(result).build()
 
             result.endecodeClient =
                 _endecodeClient
-                    ?: EndecodeClientDefault.Builder().mainThread(result.mainThread).build()
+                    ?: EndecodeClientDefault.Builder().backend(result).build()
 
             result.imageManager = _imageManager ?: ImageManagerClientDefault.Builder()
                 .mainThread(result.mainThread)
@@ -224,8 +226,8 @@ open class Backend private constructor() {
                 LinkedBlockingQueue<Runnable>()
             )
 
-            if (_asShared || sharedInstance == null) {
-                sharedInstance = result
+            if (_asShared || _sharedInstance == null) {
+                _sharedInstance = result
             }
 
             result.setup()

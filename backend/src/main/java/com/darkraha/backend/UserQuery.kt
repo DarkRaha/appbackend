@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 interface UserQuery : ResultReader, ResultOptionsReader,
     ParamReader, ErrorReader,
     MetaInfoReader, Workflow,
-    WorkflowState, WorkflowReader{
+    WorkflowState, WorkflowReader {
 
     //-------------------------------------------------------------
     //  other
@@ -15,16 +15,17 @@ interface UserQuery : ResultReader, ResultOptionsReader,
 
     fun getQueryId(): String?
 
+    fun getCmdQueryId(): String?
+
     fun getComment(): String?
 
-   // fun getChainType(): ChainType
+    // fun getChainType(): ChainType
 
 }
 
 inline fun <reified T : Service> UserQuery.getServiceAs(): T? {
     return service() as T?
 }
-
 
 
 inline fun <reified T> UserQuery.getResultAs(): T? {
@@ -36,7 +37,7 @@ inline fun <reified T> UserQuery.getSrcValueAs(): T? {
 }
 
 
-inline fun  UserQuery.getSourceValue(): Any? {
+inline fun UserQuery.getSourceValue(): Any? {
     return source().value
 }
 
@@ -53,19 +54,19 @@ inline fun UserQuery.getSourceMimetype(): String? {
 }
 
 
-inline fun  UserQuery.getDestinationValue(): Any? {
+inline fun UserQuery.getDestinationValue(): Any? {
     return destination().value
 }
 
-inline fun  UserQuery.getDestinationMimetype(): String? {
+inline fun UserQuery.getDestinationMimetype(): String? {
     return destination().mimetype;
 }
 
-inline fun  UserQuery.getDestinationClass(): KClass<*>? {
+inline fun UserQuery.getDestinationClass(): KClass<*>? {
     return destination().cls;
 }
 
-inline fun  UserQuery.getDestinationItemClass(): KClass<*>? {
+inline fun UserQuery.getDestinationItemClass(): KClass<*>? {
     return destination().clsItem;
 }
 
