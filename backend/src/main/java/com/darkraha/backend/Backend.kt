@@ -116,7 +116,6 @@ open class Backend private constructor() {
         var _sharedInstance: Backend? = null
             protected set
 
-
         val sharedInstance get() = _sharedInstance!!
 
 
