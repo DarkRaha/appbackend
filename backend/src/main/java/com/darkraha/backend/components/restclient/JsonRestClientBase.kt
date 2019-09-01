@@ -80,9 +80,9 @@ open class JsonRestClientBase protected constructor() : RestClient, ClientBase()
         val json = q.rawString()!!
         val clsDest = q.getDestinationClass()
         if (clsDest != null) {
-            val fromJson = jsonManager.fromJson(json, clsDest)
+            val fromJson = jsonManager.fromJson(json, clsDest.java)
             if (checkSuccess(q, response, fromJson)) {
-                response.responseInfo().result = jsonManager.fromJson(json, clsDest)
+                response.responseInfo().result = jsonManager.fromJson(json, clsDest.java)
             }
         }
     }
