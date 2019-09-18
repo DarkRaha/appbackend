@@ -15,6 +15,8 @@ import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.components.mainthread.MainThreadDefault
 import com.darkraha.backend.components.qmanager.QueryManager
 import com.darkraha.backend.components.qmanager.QueryManagerDefault
+import com.darkraha.backend.infos.ErrorInfo
+import com.darkraha.backend.livedata.UIObservable
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.LinkedBlockingQueue
@@ -58,6 +60,8 @@ open class Backend private constructor() {
 
     lateinit var workdir: File
         protected set
+
+    val error = UIObservable(ErrorInfo(),"Error")
 
     /**
      *
@@ -204,6 +208,8 @@ open class Backend private constructor() {
         }
 
         fun build(): Backend {
+
+            val file = File("")
 
             result.jsonManager = _jsonManager ?: JsonManagerDefault()
             result.mainThread = _mainThread ?: MainThreadDefault()

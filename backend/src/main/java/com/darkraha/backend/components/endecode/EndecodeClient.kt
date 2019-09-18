@@ -103,7 +103,7 @@ open class EndecodeClientDefault protected constructor() : EndecodeClient, Clien
         extra: Any?,
         cb: Callback<UserQuery>?
     ): Query {
-        val ret = prepareQuery()
+        val ret = prepareDefaultQuery()
         ret.source(src, srcMimetype)
             .destinationClass(dstClass)
             .extraParam(extra)
@@ -113,7 +113,7 @@ open class EndecodeClientDefault protected constructor() : EndecodeClient, Clien
     }
 
     override fun prepareEncode(src: Any, dst: File, extra: Any?, cb: Callback<UserQuery>?): Query {
-        val ret = prepareQuery()
+        val ret = prepareDefaultQuery()
         ret.source(src).destination(dst).extraParam(extra).command(EndecodeConsts.CMD_ENCODE)
             .addCallback(cb)
         return ret

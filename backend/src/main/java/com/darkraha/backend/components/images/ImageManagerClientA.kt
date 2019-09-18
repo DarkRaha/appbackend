@@ -105,12 +105,12 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         if (uiParam != null) {
 
             val builder = buildDecode(
-                q.url()!!,
-                q.fileDestination()!!,
-                uiParam,
-                null,
-                q.extraParam() as ImageLoadEP?,
-                null
+                    q.url()!!,
+                    q.fileDestination()!!,
+                    uiParam,
+                    null,
+                    q.extraParam() as ImageLoadEP?,
+                    null
             ).chainTypeCreate(ChainType.LAST_ELEMENT)
 
 
@@ -124,8 +124,8 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         q.getAppendedQueries().forEach {
             if (it.ui != null) {
                 buildDecode(
-                    q.url()!!, q.fileSource()!!, it.ui!!,
-                    it.callback, it.extraParam as ImageLoadEP
+                        q.url()!!, q.fileSource()!!, it.ui!!,
+                        it.callback, it.extraParam as ImageLoadEP
                 ).chainTypeCreate(ChainType.STAND_ALONE).exeAsync()
             }
         }
@@ -147,8 +147,6 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     }
 
 
-
-
     protected fun assignImage(img: Any?, ui: Any?, ep: ImageLoadEP?): Boolean {
 
         if (img == null || ui == null) {
@@ -168,7 +166,10 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     }
 
     override fun cancelLoad(ui: Any) {
-       loadingFiles[uiUrlMap[ui]]?.cancel()
+        var query = loadingFiles[uiUrlMap[ui]]
+        if (query != null) {
+            query.cancelUi(ui, null, true)
+        }
     }
 
     override fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
@@ -209,52 +210,57 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     }
 
     override fun buildLoad(
-        url: String,
-        ui: Any?,
-        cb: Callback<UserQuery>?,
-        ep: ImageLoadEP?,
-        progressListener: ProgressListener?
+            url: String,
+            ui: Any?,
+            cb: Callback<UserQuery>?,
+            ep: ImageLoadEP?,
+            progressListener: ProgressListener?
     ): QueryBuilder<WorkflowBuilder1> {
-        val builder = httpClient.prepareQuery()
-            .queryId(url)
-            .url(url)
-            .uiParam(ui)
-            .destination(diskCacheClient.genFile(url))
-            .extraParam(ep)
-            .addCallback(cb)
-            .progressListener(progressListener)
-            .allowAppend(true)
-            .callbackFirst(callbackLoad)
-            .resSync(url)
-            .addPrepareProcessor(::onPrepareLoad)
-            .addPostProcessor(::onPostLoad)
-            .addPreProcessor(::onPreLoad)
-            .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
+        val builder = httpClient.prepareDefaultQuery()
+                .queryId(url)
+                .url(url)
+                .uiParam(ui)
+                .destination(diskCacheClient.genFile(url))
+                .extraParam(ep)
+                .addCallback(cb)
+                .progressListener(progressListener)
+                .allowAppend(true)
+                .callbackFirst(callbackLoad)
+                .resSync(url)
+                .addPrepareProcessor(::onPrepareLoad)
+                .addPostProcessor(::onPostLoad)
+                .addPreProcessor(::onPreLoad)
+                .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
 
 
         return builder
     }
 
     override fun buildDecode(
-        url: String?,
-        file: File,
-        ui: Any?,
-        cb: Callback<UserQuery>?,
-        ep: ImageLoadEP?,
-        progressListener: ProgressListener?
+            url: String?,
+            file: File,
+            ui: Any?,
+            cb: Callback<UserQuery>?,
+            ep: ImageLoadEP?,
+            progressListener: ProgressListener?
     ): WorkflowBuilder<WorkflowBuilder1> {
         val _url = url ?: file.toURI().toString()
-
-        return endecoder.prepareDecode(file, null, null, ep, cb)
-            .queryId(_url)
-            .uiParam(ui)
-            .allowAppend(false)
-            .resSync(_url)
-            .addPrepareProcessor(::onPrepareDecode)
-            .addPreProcessor(::onPreDecode)
-            .addPostProcessor(::onPostDecode)
-            .callbackFirst(callbackDecode)
-            .chainTypeCreate(ChainType.STAND_ALONE)
+        val ext = file.extension
+        val mimetype = if(ext==""){
+            "image/jpeg"
+        }else{
+            null
+        }
+        return endecoder.prepareDecode(file, mimetype, null, ep, cb)
+                .queryId(_url)
+                .uiParam(ui)
+                .allowAppend(false)
+                .resSync(_url)
+                .addPrepareProcessor(::onPrepareDecode)
+                .addPreProcessor(::onPreDecode)
+                .addPostProcessor(::onPostDecode)
+                .callbackFirst(callbackDecode)
+                .chainTypeCreate(ChainType.STAND_ALONE)
     }
 
 

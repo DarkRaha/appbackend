@@ -13,7 +13,7 @@ class JsonManagerDefault : JsonManager {
     protected var adapters: HashMap<Type, Any>? = HashMap()
     protected var applied = false
 
-    override fun <T> fromJson(src: String, clsDst: Class<T>): T {
+    override fun <T> fromJsonString(src: String, clsDst: Class<T>): T {
         apply()
         return gson!!.fromJson(src, clsDst)
     }
@@ -32,7 +32,7 @@ class JsonManagerDefault : JsonManager {
         }
     }
 
-    override fun toJson(obj: Any): String {
+    override fun toJsonString(obj: Any): String {
         apply()
         return gson.toJson(obj)
     }

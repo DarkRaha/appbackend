@@ -138,7 +138,7 @@ class ParamInfo : ParamReader {
         options = options.or(OPT_AUTOCLOSE_DESTINATION)
     }
 
-    fun assignFrom(src: ParamInfo) {
+    fun addOrSetFrom(src: ParamInfo) {
         urlBuilder.assignFrom(src.urlBuilder)
         param.addAll(src.param)
         namedParams.putAll(src.namedParams)

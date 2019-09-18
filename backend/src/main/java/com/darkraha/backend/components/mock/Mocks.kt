@@ -9,8 +9,8 @@ import java.io.File
  */
 class MockClient : ClientBase() {
 
-    override fun prepareQuery(): Query {
-        val q = super.prepareQuery()
+    override fun prepareDefaultQuery(): Query {
+        val q = super.prepareDefaultQuery()
         q.command("MockCommand")
         return q
     }

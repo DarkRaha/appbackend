@@ -27,7 +27,7 @@ abstract class FileEncoder(
 
     fun isSupportEncode(src: Any?, dst: Any?, aDstMimetype: String? = null, extraParam: Any? = null): Boolean {
         return srcClass.isInstance(src)
-                && (dstMimetype == aDstMimetype || (dst is File && dst.extension.toLowerCase() == dstFileExtension))
+                && ((dst is File && dst.extension.toLowerCase() == dstFileExtension) || dstMimetype == aDstMimetype )
                 && (extraParam == null || extraParamClass?.isInstance(extraParam) ?: false)
     }
 

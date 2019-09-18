@@ -23,7 +23,8 @@ class SimpleUrlBuilder {
     }
 
     fun build() {
-        if (base != null) {
+
+        if (url==null && base != null) {
             val sb = StringBuilder()
             sb.append(base)
 

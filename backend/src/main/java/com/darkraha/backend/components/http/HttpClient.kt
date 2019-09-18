@@ -1,7 +1,6 @@
 package com.darkraha.backend.components.http
 
 import com.darkraha.backend.QueryCallback
-import com.darkraha.backend.Service
 import com.darkraha.backend.client.Client
 import com.darkraha.backend.client.ClientBase
 import com.darkraha.backend.extraparams.UploadEP
@@ -42,7 +41,7 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
     }
 
     override fun checkLink(url: String, params: Map<String, String>?, cb: QueryCallback?) {
-        prepareQuery()
+        prepareDefaultQuery()
             .url(url)
             .addCallback(cb)
             .addNamedParamsAll(params)
@@ -51,7 +50,7 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
     }
 
     override fun loadText(url: String, params: Map<String, String>?, cb: QueryCallback?) {
-        prepareQuery()
+        prepareDefaultQuery()
             .url(url)
             .addCallback(cb)
             .addNamedParamsAll(params)
@@ -59,7 +58,7 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
     }
 
     override fun loadFile(url: String, fileDst: File, cb: QueryCallback?) {
-        prepareQuery()
+        prepareDefaultQuery()
             .url(url)
             .addCallback(cb)
             .destination(fileDst)
@@ -67,7 +66,7 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
     }
 
     override fun postForm(url: String, params: Map<String, String>?, cb: QueryCallback?) {
-        prepareQuery()
+        prepareDefaultQuery()
             .url(url)
             .addCallback(cb)
             .addNamedParamsAll(params)
@@ -76,7 +75,7 @@ open class HttpClientDefault protected constructor() : ClientBase(), HttpClient 
     }
 
     override fun uploadFile(url: String, extraParam: UploadEP, cb: QueryCallback?) {
-        prepareQuery()
+        prepareDefaultQuery()
             .url(url)
             .addCallback(cb)
             .extraParam(extraParam)

@@ -27,7 +27,7 @@ class MetaInfo : MetaInfoReader {
         private set
 
 
-    fun assignFrom(src: MetaInfo) {
+    fun addOrSetFrom(src: MetaInfo) {
         method = src.method
         inHeaders.putAll(src.inHeaders)
         inCookies.putAll(src.inCookies)

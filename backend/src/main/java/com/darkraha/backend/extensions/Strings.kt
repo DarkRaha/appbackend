@@ -60,6 +60,8 @@ fun String.encodeMd5(): String {
     return BigInteger(digest.digest()).abs().toString(36)
 }
 
+
 fun String.isTextMimetype(): Boolean {
-    return startsWith("text/", true) || endsWith("/json")
+    // mimetype = application/json;charset=UTF-8
+    return startsWith("text/", true) || contains("/json")
 }

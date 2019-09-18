@@ -24,7 +24,7 @@ class ParamInfoTest {
         src.param.add("param2")
         src.namedParams.put("key1", "val1")
 
-        dst.assignFrom(src)
+        dst.addOrSetFrom(src)
         assertTrue(dst.urlBuilder.url == "http://example.com")
         assertTrue(dst.destination == src.destination)
         assertTrue(dst.source == src.source)

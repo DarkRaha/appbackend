@@ -48,7 +48,11 @@ interface Client {
     fun onAddToBackend(backend: Backend)
 
 
-    fun prepareQuery(): Query
+    fun prepareDefaultQuery(): Query {
+        return prepareQuery(null)
+    }
+
+    fun prepareQuery(otherClient: Client?): Query
 
 
     fun buildQuery(): QueryBuilder<WorkflowBuilder1>
@@ -66,7 +70,6 @@ interface Client {
      * Waits finishing of any query.
      */
     fun waitQueryAny(time: Long = 0)
-
 
 
     /**

@@ -19,78 +19,72 @@ open class JsonRestClientBase protected constructor() : RestClient, ClientBase()
     protected lateinit var httpClient: HttpClient
     protected lateinit var jsonManager: JsonManager
 
-    protected val _runningCommands = HashMap<String, UserQuery>()
-
-    val runningCommands get() = _runningCommands as Map<String, UserQuery>
-
 
     protected val clientCallback = object : QueryCallback {
 
         override fun onFinish(query: UserQuery) {
-            val cmdid = query.getCmdQueryId()
-            if (cmdid != null) {
-                _runningCommands.remove(cmdid)
+
+            println("JsonRestClientBase onFinish " + query.getCmdQueryId() + " isOk=" + query.isSuccess()
+                    + " isCanceled " + query.isCanceled()
+                    + " isError " + query.isError()+" url="+query.url())
+
+            if (query.isError()) {
+                println("JsonRestClientBase onFinish err=" + query.errorMessage())
+            }
+
+            if (query.isCanceled()) {
+                println("JsonRestClientBase onFinish canceled=" + query.cancelInfo().message)
             }
         }
 
     }
 
-    override fun prepareQuery(): Query {
-        val ret = httpClient.prepareQuery()
+    override fun prepareDefaultQuery(): Query {
+        val ret = prepareQuery(httpClient as ClientBase)
         ret.urlBase(baseUrl)
-            .client(this)
+                .optAsString()
+                .callbackFirst(clientCallback)
         return ret
     }
 
     override fun buildCommandQuery(
-        urlPath: String,
-        cmd: String?,
-        id: String?,
-        clsResult: KClass<*>?,
-        cb: QueryCallback?
+            urlPath: String,
+            cmd: String?,
+            id: String?,
+            clsResult: KClass<*>?,
+            cb: QueryCallback?
     ): QueryBuilder<WorkflowBuilder1> {
-        val ret = prepareQuery()
+        val ret = prepareDefaultQuery()
         ret.addUrlPath(urlPath)
-            .command(cmd)
-            .queryId(id)
-            .addCallback(cb)
-            .addPrepareProcessor(this::onPrepare)
-            .addPostProcessor(this::onPostprocessor)
-            .callbackFirst(clientCallback)
-            .destinationClass(clsResult)
+                .command(cmd)
+                .queryId(id)
+                .addCallback(cb)
+                .destinationClass(clsResult)
 
         return ret
     }
 
 
-    open protected fun onPrepare(q: UserQuery, response: ClientQueryEditor) {
-        val cmdid = q.getCmdQueryId()
-        if (cmdid != null) {
-            if (cmdid !in _runningCommands) {
-                _runningCommands[cmdid] = q
-            } else {
-                response.cancel(-2, "Canceled by client, query already executed.")
-            }
-        }
-    }
 
+    override fun onPostProcessor(q: UserQuery, response: ClientQueryEditor) {
 
-    open protected fun onPostprocessor(q: UserQuery, response: ClientQueryEditor) {
-
+        println("JsonRestClientBase onPostProcessor 1" )
         val json = q.rawString()!!
+        println("JsonRestClientBase onPostProcessor 2 "+json )
         val clsDest = q.getDestinationClass()
+        println("JsonRestClientBase onPostProcessor 3" )
         if (clsDest != null) {
-            val fromJson = jsonManager.fromJson(json, clsDest.java)
-            if (checkSuccess(q, response, fromJson)) {
-                response.responseInfo().result = jsonManager.fromJson(json, clsDest.java)
-            }
+            println("JsonRestClientBase onPostProcessor 4" )
+            response.responseInfo().result = jsonManager.fromJsonString(json, clsDest.java)
+            println("JsonRestClientBase onPostProcessor 4a" )
         }
+        println("JsonRestClientBase onPostProcessor 5" )
     }
 
     open protected fun checkSuccess(
-        q: UserQuery,
-        response: ClientQueryEditor,
-        fromJson: Any
+            q: UserQuery,
+            response: ClientQueryEditor,
+            fromJson: Any
     ): Boolean {
         return true
     }

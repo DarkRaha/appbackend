@@ -17,20 +17,20 @@ import kotlin.reflect.KClass
  *@author Verma Rahul
  */
 class Query(
-    val params: ParamInfo = ParamInfo(),
-    val meta: MetaInfo = MetaInfo(),
-    val workflow: WorkflowManager = WorkflowManager()
+        val params: ParamInfo = ParamInfo(),
+        val meta: MetaInfo = MetaInfo(),
+        val workflow: WorkflowManager = WorkflowManager()
 ) :
-    WorkflowBuilder1,
-    UserQuery,
-    ClientQueryEditor,
-    ServiceWorkflowHelper,
-    ParamReader by params,
-    MetaInfoReader by meta,
-    WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
-    WorkflowExecutor by workflow,
-    ResultReader by workflow.response, ResultOptionsReader by workflow.response,
-    ErrorReader by workflow.response.errorInfo {
+        WorkflowBuilder1,
+        UserQuery,
+        ClientQueryEditor by workflow,
+        ServiceWorkflowHelper,
+        ParamReader by params,
+        MetaInfoReader by meta,
+        WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
+        WorkflowExecutor by workflow,
+        ResultReader by workflow.response, ResultOptionsReader by workflow.response,
+        ErrorReader by workflow.response.errorInfo {
 
 
     internal var _command: String? = null
@@ -62,80 +62,6 @@ class Query(
         return this.workflow.isAllowAppend() || this.workflow.progressListener != null
     }
 
-    override fun assignFrom(src: ResponseInfo) {
-        this.workflow.response.assignFrom(src)
-    }
-
-
-    //------------------------------------------------------------------------------------------
-    // client query editor
-
-
-    override fun getUserCallbacks(): List<Callback<UserQuery>> {
-        return workflow.callbacks
-    }
-
-    override fun setResult(r: Any?) {
-        workflow.response.result = r
-    }
-
-    override fun setRawMimetype(mt: String?) {
-        workflow.response.rawMimetype = mt
-    }
-
-    override fun setRawSize(s: Long) {
-        workflow.response.rawSize = s
-    }
-
-    override fun setRawString(s: String?, asResult: Boolean) {
-        workflow.response.rawResultString = s
-        if (asResult) {
-            workflow.response.result = s
-        }
-    }
-
-    override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
-        workflow.response.rawResultBytes = b
-        if (asResult) {
-            workflow.response.result = b
-        }
-    }
-
-    override fun setResultFile(file: File?) {
-        workflow.response.rawResultFile = file
-    }
-
-    override fun cancel(code: Int, message: String?) {
-        workflow.cancel(code, message)
-    }
-
-    override fun success(newResult: Any?, resultChainType: ChainType) {
-        workflow.success(newResult, resultChainType)
-    }
-
-    override fun error(e: Throwable?) {
-        workflow.error(e)
-    }
-
-    override fun error(code: Int, msg: String?, e: Throwable?) {
-        workflow.error(code, msg, e)
-    }
-
-    override fun error(responseInfo: ResponseInfo) {
-        workflow.error(responseInfo)
-    }
-
-    override fun resultCode(code: Int) {
-        workflow.response.resultCode = code
-    }
-
-    override fun resultMessage(msg: String?) {
-        workflow.response.resultMessage = msg
-    }
-
-    override fun responseInfo(): ResponseInfo {
-        return workflow.response
-    }
 
     //------------------------------------------------------------------------------------------
     // Reader
@@ -168,11 +94,11 @@ class Query(
         return this
     }
 
-    override fun assignFrom(q: Query): WorkflowBuilder1 {
+    override fun addOrSetFrom(q: Query): WorkflowBuilder1 {
 
-        this.workflow.assignFrom(q.workflow)
-        params.assignFrom(q.params)
-        meta.assignFrom(q.meta)
+        this.workflow.addOrSetFrom(q.workflow)
+        params.addOrSetFrom(q.params)
+        meta.addOrSetFrom(q.meta)
         _command = q._command
         _queryId = q._queryId
         return this
@@ -230,7 +156,7 @@ class Query(
     }
 
     //-----------------------------------------------------------------------------------------
-    // Query builder methods
+    // Query meta builder methods
     override fun method(v: String): WorkflowBuilder1 {
         meta.method = v
         return this
@@ -261,8 +187,13 @@ class Query(
         return this
     }
 
+
     //-----------------------------------------------------------------------------------------
     // Query builder
+
+    override fun getBuilder(): WorkflowBuilder1 {
+        return this
+    }
 
 
     override fun addHeader(name: String, v: String): WorkflowBuilder1 {

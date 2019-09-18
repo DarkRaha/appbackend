@@ -8,7 +8,7 @@ group='com.github.darkraha.appbackend'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation("com.squareup.okhttp3:okhttp:3.12.1")
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     testCompile "junit:junit:4.12"
     testCompile 'org.awaitility:awaitility-kotlin:4.0.0'
@@ -17,8 +17,16 @@ dependencies {
 
 }
 
-sourceCompatibility = "7"
-targetCompatibility = "7"
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = '1.8'
+        freeCompilerArgs = ['-Xjvm-default=compatibility']
+    }
+}
+
+sourceCompatibility = "8"
+targetCompatibility = "8"
+
 
 repositories {
     jcenter()

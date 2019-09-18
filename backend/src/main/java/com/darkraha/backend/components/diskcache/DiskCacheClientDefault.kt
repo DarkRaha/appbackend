@@ -82,18 +82,18 @@ open class DiskCacheClientDefault protected constructor() : ClientBase(), DiskCa
         minTime: Long,
         toSize: Long
     ): QueryBuilder<WorkflowBuilder1> {
-        return prepareQuery().command(DiskCacheConsts.CMD_CLEANUP)
+        return prepareDefaultQuery().command(DiskCacheConsts.CMD_CLEANUP)
             .addNamedSpecialParam(Param.PARAM_OLD_TIME_MAX, maxTime)
             .addNamedSpecialParam(Param.PARAM_OLD_TIME_MIN, minTime)
             .addNamedSpecialParam(Param.PARAM_TO_SIZE, toSize)
     }
 
     override fun buildClear(): QueryBuilder<WorkflowBuilder1> {
-        return prepareQuery().command(DiskCacheConsts.CMD_CLEAR)
+        return prepareDefaultQuery().command(DiskCacheConsts.CMD_CLEAR)
     }
 
     override fun buildPutFile(keyUrl: String, file: File): QueryBuilder<WorkflowBuilder1> {
-        return prepareQuery().command(DiskCacheConsts.CMD_PUT)
+        return prepareDefaultQuery().command(DiskCacheConsts.CMD_PUT)
             .addNamedSpecialParam(Param.PARAM_FILE_SOURCE, file)
             .addNamedSpecialParam(Param.PARAM_KEY_URL, keyUrl)
     }

@@ -12,7 +12,7 @@ class AndroidMainThread : MainThread() {
     }
 
     override fun execute(block: () -> Unit) {
-        if (isMainThread()) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
             block()
         } else {
             handler.post(block)
@@ -21,6 +21,10 @@ class AndroidMainThread : MainThread() {
 
     override fun post(block: () -> Unit) {
         handler.post(block)
+    }
+
+    override fun postDelayed(timeDelay: Long, block: () -> Unit) {
+        handler.postDelayed(block, timeDelay)
     }
 
 }

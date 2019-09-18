@@ -1,6 +1,7 @@
 package com.darkraha.backend.components.mainthread
 
 import java.util.concurrent.Executors
+import kotlin.concurrent.timer
 
 /**
  * Wrapper over main/gui thread.
@@ -25,6 +26,7 @@ abstract class MainThread {
      */
     abstract fun post(block: () -> Unit)
 
+    abstract fun postDelayed(timeDelay: Long, block: () -> Unit)
 
     companion object {
         @JvmStatic
@@ -40,6 +42,10 @@ class MainThreadDefault() : MainThread() {
 
     override fun execute(block: () -> Unit) = executor.execute(block)
     override fun post(block: () -> Unit) = executor.execute(block)
+    override fun postDelayed(timeDelay: Long, block: () -> Unit) {
+        //timer(null,false,)
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
 }
 

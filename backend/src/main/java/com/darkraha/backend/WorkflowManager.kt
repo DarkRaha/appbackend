@@ -6,7 +6,9 @@ import com.darkraha.backend.components.qmanager.QueryManager
 import com.darkraha.backend.helpers.AtomicFlag
 import com.darkraha.backend.helpers.LockManager
 import com.darkraha.backend.infos.CancelInfo
+import com.darkraha.backend.infos.ErrorInfo
 import com.darkraha.backend.infos.ResponseInfo
+import java.io.File
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
@@ -32,12 +34,21 @@ interface WorkflowExecutor {
     fun exeSync(): UserQuery
 }
 
+
+interface WorkflowCancel {
+    fun cancel(code: Int=CancelInfo.CANCEL_BY_USER, message: String?="Canceled by user.")
+    /**
+     * @param uiWithProgressListener when true, then progress listener that correspond to the ui object will be removed
+     */
+    fun cancelUi(ui: Any?, progressListener: ProgressListener?, uiWithProgressListener: Boolean)
+}
+
+
 interface WorkflowState {
     fun isSuccess(): Boolean
     fun isError(): Boolean
     fun isCanceled(): Boolean
     fun isFinished(): Boolean
-    fun cancel()
     fun workflowStep(): Int
 }
 
@@ -45,6 +56,7 @@ interface WorkflowReader {
     fun service(): Service?
     fun client(): ClientBase?
     fun lock(): ReentrantLock
+    fun cancelInfo(): CancelInfo
 //    fun chainTypeCreate(): ChainType
 //    fun chainTypeResponse(): ChainType
 }
@@ -68,13 +80,36 @@ interface Workflow {
     fun free()
 }
 
+interface ClientQueryEditor: WorkflowCancel {
+
+    fun assignFrom(src: ResponseInfo)
+    fun setResult(r: Any?)
+    fun setRawString(s: String?, asResult: Boolean = false)
+    fun setRawBytes(b: ByteArray?, asResult: Boolean = false)
+    fun setRawSize(s: Long)
+    fun setRawMimetype(mt: String?)
+    fun setResultFile(file: File?)
+    fun success(newResult: Any? = null, resultChainType: ChainType = ChainType.UNDEFINED)
+    fun error(code: Int, msg: String?, e: Throwable?)
+    fun error(responseInfo: ResponseInfo)
+    fun resultCode(code: Int)
+    fun resultMessage(msg: String? = null)
+    fun responseInfo(): ResponseInfo
+    fun getUserCallbacks(): List<Callback<UserQuery>>
+    fun error(e: Throwable?)
+    fun error(msg: String?)
+
+}
+
+
+
 /**
  * Describe query handling workflow. If query has assigned client, then it will be _free for reusing,
  * all data will be cleared.
  *
  * @author Verma Rahul
  */
-class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor {
+class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor, ClientQueryEditor, WorkflowCancel {
 
     lateinit var owner: Query
     val response = ResponseInfo()
@@ -114,9 +149,15 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     var progressListener: ProgressListener? = null
     var externalUsers = 0
+    val callbackException: CallbackErrorHandler = { it: Exception ->
+        run {
+            response.errorInfo.exceptionsCallbacks.add(it)
+            it.printStackTrace()
+        }
+    }
 
 
-    fun assignFrom(src: WorkflowManager) {
+    fun addOrSetFrom(src: WorkflowManager) {
         prepareProcessor.addAll(src.prepareProcessor)
         preProcessor.addAll(src.preProcessor)
         postProcessor.addAll(src.postProcessor)
@@ -193,104 +234,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         }
     }
 
-    fun cancel(code: Int = CancelInfo.CANCEL_BY_USER, message: String? = "Canceled by user") {
-
-        if (state.setFlagMustAnyAndNon(
-                F_CANCELED,
-                F_USED,
-                ERR_QUERY_NOT_USED,
-                F_SUCCESS or F_ERROR
-            )
-        ) {
-            if (isAllowInterrupt()) {
-                synchronized(syncBg) {
-                    try {
-                        bgThread?.let {
-                            it.interrupt()
-                            setBackground(false)
-                            finish()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }
-            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
-                ChainType.STAND_ALONE
-            } else {
-                ChainType.LAST_ELEMENT
-            }
-
-            response.cancelInfo.set(code, message)
-        }
-      }
-
-
-    fun success(newResult: Any? = null, resultChainType: ChainType = ChainType.UNDEFINED) {
-
-        if (state.setFlagMustAnyAndNon(
-                F_SUCCESS,
-                F_USED,
-                ERR_QUERY_NOT_USED,
-                F_CANCELED or F_ERROR
-            )
-        ) {
-
-            response.chainTypeResponse = if (resultChainType == ChainType.UNDEFINED) {
-                owner.chainTypeCreate()
-            } else {
-                resultChainType
-            }
-
-            if (newResult != null) {
-                response.result = newResult
-            }
-        }
-    }
-
-
-    fun error(code: Int, msg: String?, e: Throwable?) {
-        if (state.setFlagMustAnyAndNon(
-                F_ERROR,
-                F_USED,
-                ERR_QUERY_NOT_USED,
-                F_SUCCESS or F_CANCELED
-            )
-        ) {
-            response.errorInfo.set(code, msg, e)
-            state.setFlag(F_ERROR)
-
-            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
-                ChainType.STAND_ALONE
-            } else {
-                ChainType.LAST_ELEMENT
-            }
-        }
-    }
-
-    fun error(responseInfo: ResponseInfo) {
-        if (state.setFlagMustAnyAndNon(
-                F_ERROR,
-                F_USED,
-                ERR_QUERY_NOT_USED,
-                F_SUCCESS or F_CANCELED
-            )
-        ) {
-            response.errorInfo.set(responseInfo.errorInfo)
-            state.setFlag(F_ERROR)
-
-            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
-                ChainType.STAND_ALONE
-            } else {
-                ChainType.LAST_ELEMENT
-            }
-        }
-    }
-
-
-    fun error(e: Throwable?) {
-        error(-1, if (e != null) e.message else null, e)
-    }
 
     private fun readyForFree() {
         if (isWorkflowPossible()) {
@@ -409,6 +352,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         client?.onQueryStart(owner)
         dispatchWorkflowListeners(WORKFLOW_PREPARE_START)
 
+
         dispatchPrepare()
 
         if (isWorkflowPossible()) {
@@ -434,13 +378,13 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             if (isWorkflowPossible()) {
                 dispatchPre()
                 service!!.handle(owner, owner, owner)
+                println("after service " + response.rawResultString + " isWorkflowPossible " + isWorkflowPossible())
                 dispatchPost()
             } else {
-                //todo error
+                throw IllegalStateException("WorkflowManager not possible. canceled='${response.cancelInfo.message}' err='${response.errorInfo.message}'")
             }
-
         }.onFailure {
-            error(it)
+            error(ErrorInfo.ERR_WORKFLOW, it.message, it)
             it.printStackTrace()
         }
         if (syncResource != null) {
@@ -466,10 +410,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             if (state.isFlag(F_RUN_SYNC)) {
                 finishCallbacks()
             } else {
-//                GlobalScope.launch(Dispatchers.Main) {
-//                    finishCallbacks()
-//                }
-
                 mainThread!!.execute {
                     finishCallbacks()
                 }
@@ -477,8 +417,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         } else {
             finish_end()
         }
-
     }
+
 
     private fun finishCallbacks() {
         dispatchWorkflowListeners(WORKFLOW_FINISH_CALLBACK_START)
@@ -488,6 +428,22 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
     private fun finish_end() {
+        if (isError()) {
+            val backendErrorInfo = Backend._sharedInstance?.error?.value
+            if (backendErrorInfo != null) {
+                response.errorInfo.clientClassName = client?.javaClass?.simpleName
+                response.errorInfo.serviceClassName = service?.javaClass?.simpleName
+                backendErrorInfo.set(response.errorInfo)
+                Backend._sharedInstance?.error?.notifyDataChanged()
+            }
+            println("Error notification: ${response.errorInfo}")
+            response.errorInfo.exception?.printStackTrace()
+        } else if (isCanceled()) {
+            println("WorkflowManager query canceled: " + response.cancelInfo.message + " code = " + response.cancelInfo.code)
+        }
+
+
+
         dispatchWorkflowListeners(WORKFLOW_FINISH_END)
         queryManager?.onQueryEnd(owner)
         client?.onQueryEnd(owner)
@@ -529,18 +485,22 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
      */
     fun append(a: WorkflowAppend): Boolean {
 
-        state.lock.withLock {
-            if (state.flags and F_ALLOW_APPEND > 0) {
+
+        if (state.flags and F_ALLOW_APPEND > 0) {
+            synchronized(appended) {
                 appended.add(a)
                 a.progressListener?.onStart()
                 a.callback?.onPrepare(owner)
-                return true
             }
+
+            return true
         }
+
         return false
     }
 
     private fun dispatchProcessor(p: List<Processor>) {
+        println("WorkflowManager dispatchProcessor workPossible=" + isWorkflowPossible())
         if (isWorkflowPossible()) {
             try {
                 synchronized(p) {
@@ -552,7 +512,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
                     }
                 }
             } catch (e: Exception) {
-                error(e)
+                error(ErrorInfo.ERR_WORKFLOW_PROCESSOR, e.message, e)
             }
         }
     }
@@ -585,13 +545,9 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            callbacks.forEach {
-                try {
-                    it.onPrepare(owner)
-                } catch (e: Exception) {
-                    response.errorInfo.exceptionsCallbacks.add(e)
-                    e.printStackTrace()
-                }
+            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_PREPARE, owner as UserQuery, callbacks, callbackException)
+            client?.apply {
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_PREPARE, owner, clientCallbacks, callbackException)
             }
 
             if (callbackLast != null) {
@@ -618,13 +574,9 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            callbacks.forEach {
-                try {
-                    it.onCancel(q)
-                } catch (e: Exception) {
-                    response.errorInfo.exceptionsCallbacks.add(e)
-                    e.printStackTrace()
-                }
+            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_CANCELED, q as UserQuery, callbacks, callbackException)
+            client?.apply {
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_CANCELED, q as UserQuery, clientCallbacks, callbackException)
             }
 
             try {
@@ -659,13 +611,9 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
             // user callbacks
             if (response.chainTypeResponse() == ChainType.LAST_ELEMENT || response.chainTypeResponse() == ChainType.STAND_ALONE) {
-                callbacks.forEach {
-                    try {
-                        it.onSuccess(q)
-                    } catch (e: Exception) {
-                        response.errorInfo.exceptionsCallbacks.add(e)
-                        e.printStackTrace()
-                    }
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_SUCCESS, q as UserQuery, callbacks, callbackException)
+                client?.apply {
+                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_SUCCESS, q as UserQuery, clientCallbacks, callbackException)
                 }
 
                 if (appended.size > 0) {
@@ -705,13 +653,9 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            callbacks.forEach {
-                try {
-                    it.onError(q)
-                } catch (e: Exception) {
-                    response.errorInfo.exceptionsCallbacks.add(e)
-                    e.printStackTrace()
-                }
+            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_ERROR, q as UserQuery, callbacks, callbackException)
+            client?.apply {
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_ERROR, q as UserQuery, clientCallbacks, callbackException)
             }
 
             try {
@@ -748,17 +692,13 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
             if (isError() ||
-                response.chainTypeResponse() == ChainType.LAST_ELEMENT
-                || response.chainTypeResponse() == ChainType.STAND_ALONE
+                    response.chainTypeResponse() == ChainType.LAST_ELEMENT
+                    || response.chainTypeResponse() == ChainType.STAND_ALONE
             ) {
                 // user callbacks
-                callbacks.forEach {
-                    try {
-                        it.onComplete(q)
-                    } catch (e: Exception) {
-                        response.errorInfo.exceptionsCallbacks.add(e)
-                        e.printStackTrace()
-                    }
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_COMPLETE, q as UserQuery, callbacks, callbackException)
+                client?.apply {
+                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_COMPLETE, q as UserQuery, clientCallbacks, callbackException)
                 }
 
                 // appended callbacks
@@ -799,18 +739,12 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
             if (!q.isSuccess() || response.chainTypeResponse == ChainType.STAND_ALONE
-                || response.chainTypeResponse == ChainType.LAST_ELEMENT
+                    || response.chainTypeResponse == ChainType.LAST_ELEMENT
             ) {
-
-                callbacks.forEach {
-                    try {
-                        it.onFinish(q)
-                    } catch (e: Exception) {
-                        response.errorInfo.exceptionsCallbacks.add(e)
-                        e.printStackTrace()
-                    }
+                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_FINISHED, q as UserQuery, callbacks, callbackException)
+                client?.apply {
+                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_FINISHED, q as UserQuery, clientCallbacks, callbackException)
                 }
-
             }
 
             try {
@@ -920,16 +854,20 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     fun dispatchProgressStart() {
         synchronized(syncProgress) {
-            if (progressListener != null) {
-                progressListener!!.onStart()
-            }
+            progressListener?.onStart()
         }
     }
 
     fun dispatchProgressEnd() {
         synchronized(syncProgress) {
-            if (progressListener != null) {
-                progressListener!!.onEnd()
+            progressListener?.onEnd()
+        }
+
+        synchronized(appended) {
+            if (appended.size > 0) {
+                appended.forEach {
+                    it.progressListener?.onEnd()
+                }
             }
         }
     }
@@ -940,13 +878,15 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             progressListener?.onProgress(current, total)
         }
 
-        state.lock.withLock {
+
+        synchronized(appended) {
             if (appended.size > 0) {
                 appended.forEach {
                     it.progressListener?.onProgress(current, total)
                 }
             }
         }
+
     }
 
 
@@ -996,8 +936,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun lock(): ReentrantLock = lock
     override fun service(): Service? = service
     override fun workflowStep(): Int = workflowStep
-//    override fun chainTypeCreate(): ChainType = owner.params.chainTypeCreate
-//    override fun chainTypeResponse(): ChainType = response.chainTypeResponse
+
     //----------------------------------------------------------------------------------------
 
     override fun waitFinish(time: Long): UserQuery {
@@ -1032,10 +971,211 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         return appended
     }
 
-    override fun cancel() {
-        cancel(-1)
+    override fun cancelInfo(): CancelInfo {
+        return response.cancelInfo
     }
+
+    override fun cancelUi(ui: Any?, progressListener: ProgressListener?, uiWithProgressListener: Boolean) {
+
+        if (ui != null) {
+            if (owner.params.uiObject == ui) {
+                owner.params.uiObject = null
+                if (uiWithProgressListener) {
+                    synchronized(syncProgress) {
+                        if (this.progressListener != null) {
+                            progressListener?.onEnd()
+                            this.progressListener = null
+                        }
+                    }
+                }
+                if (appended.size == 0) {
+                    cancel(-1)
+                }
+            }
+        }
+
+        synchronized(syncProgress) {
+            if (this.progressListener == progressListener) {
+                progressListener?.onEnd()
+                this.progressListener = null
+            }
+        }
+
+        synchronized(appended) {
+            appended.forEach {
+                if (it.ui == ui) {
+                    it.ui = null
+
+                    if (uiWithProgressListener) {
+                        progressListener?.onEnd()
+                        it.progressListener = null
+                    }
+                }
+
+                if (it.progressListener == progressListener) {
+                    progressListener?.onEnd()
+                    it.progressListener = null
+                }
+            }
+        }
+
+
+    }
+
 //----------------------------------------------------------------------------------------
+
+    override fun assignFrom(src: ResponseInfo) {
+        response.assignFrom(src)
+    }
+
+    override fun getUserCallbacks(): List<Callback<UserQuery>> {
+        return callbacks
+    }
+
+    override fun setResult(r: Any?) {
+        response.result = r
+    }
+
+    override fun setRawMimetype(mt: String?) {
+        response.rawMimetype = mt
+    }
+
+    override fun setRawSize(s: Long) {
+        response.rawSize = s
+    }
+
+    override fun setRawString(s: String?, asResult: Boolean) {
+        response.rawResultString = s
+        if (asResult) {
+            response.result = s
+        }
+    }
+
+    override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
+        response.rawResultBytes = b
+        if (asResult) {
+            response.result = b
+        }
+    }
+
+    override fun setResultFile(file: File?) {
+        response.rawResultFile = file
+    }
+
+
+    override fun cancel(code: Int , message: String? ) {
+
+        if (state.setFlagMustAnyAndNon(
+                        F_CANCELED,
+                        F_USED,
+                        ERR_QUERY_NOT_USED,
+                        F_SUCCESS or F_ERROR
+                )
+        ) {
+            if (isAllowInterrupt()) {
+                synchronized(syncBg) {
+                    try {
+                        bgThread?.let {
+                            it.interrupt()
+                            setBackground(false)
+                            finish()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
+                ChainType.STAND_ALONE
+            } else {
+                ChainType.LAST_ELEMENT
+            }
+
+            response.cancelInfo.set(code, message)
+        }
+    }
+
+    override fun success(newResult: Any?, resultChainType: ChainType) {
+
+        if (state.setFlagMustAnyAndNon(
+                        F_SUCCESS,
+                        F_USED,
+                        ERR_QUERY_NOT_USED,
+                        F_CANCELED or F_ERROR
+                )
+        ) {
+
+            response.chainTypeResponse = if (resultChainType == ChainType.UNDEFINED) {
+                owner.chainTypeCreate()
+            } else {
+                resultChainType
+            }
+
+            if (newResult != null) {
+                response.result = newResult
+            }
+        }
+    }
+
+
+    override fun error(code: Int, msg: String?, e: Throwable?) {
+        if (state.setFlagMustAnyAndNon(
+                        F_ERROR,
+                        F_USED,
+                        ERR_QUERY_NOT_USED,
+                        F_SUCCESS or F_CANCELED
+                )
+        ) {
+            response.errorInfo.set(code, msg, e)
+            state.setFlag(F_ERROR)
+
+            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
+                ChainType.STAND_ALONE
+            } else {
+                ChainType.LAST_ELEMENT
+            }
+        }
+    }
+
+    override fun error(responseInfo: ResponseInfo) {
+        if (state.setFlagMustAnyAndNon(
+                        F_ERROR,
+                        F_USED,
+                        ERR_QUERY_NOT_USED,
+                        F_SUCCESS or F_CANCELED
+                )
+        ) {
+            response.errorInfo.set(responseInfo.errorInfo)
+            state.setFlag(F_ERROR)
+
+            response.chainTypeResponse = if (owner.chainTypeCreate() == ChainType.STAND_ALONE) {
+                ChainType.STAND_ALONE
+            } else {
+                ChainType.LAST_ELEMENT
+            }
+        }
+    }
+
+
+    override fun error(e: Throwable?) {
+        error(-1, if (e != null) e.message else null, e)
+    }
+
+    override fun error(msg: String?){
+        error(-1,msg, null)
+    }
+
+    override fun resultCode(code: Int) {
+       response.resultCode = code
+    }
+
+    override fun resultMessage(msg: String?) {
+        response.resultMessage = msg
+    }
+
+    override fun responseInfo(): ResponseInfo {
+        return response
+    }
 
 }
 

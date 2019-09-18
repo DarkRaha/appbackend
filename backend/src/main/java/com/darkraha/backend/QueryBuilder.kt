@@ -13,7 +13,7 @@ interface WorkflowBuilder<Self> : QueryBuilder<Self>
         where Self : WorkflowBuilder<Self> {
 
 
-    fun assignFrom(q: Query): Self
+    fun addOrSetFrom(q: Query): Self
 
     /**
      * Set executor.
@@ -72,6 +72,7 @@ interface QueryBuilder1 : QueryBuilder<QueryBuilder1>
 interface QueryBuilder<Self>
         where Self : QueryBuilder<Self> {
 
+    fun getBuilder(): Self
     //-------------------------------------------------------------------------
     // meta info
     /**
@@ -309,6 +310,13 @@ fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPrepareProcessor(p: (q: UserQ
     })
 }
 
+
+fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPrepareProcessorAll(p: List<Processor>): T {
+    p.forEach { addPrepareProcessor(it) }
+    return getBuilder()
+}
+
+
 fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPreProcessor(p: (q: UserQuery, r: ClientQueryEditor) -> Unit): T {
     return addPreProcessor(object : Processor {
         inline override fun process(q: UserQuery, response: ClientQueryEditor) {
@@ -317,12 +325,23 @@ fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPreProcessor(p: (q: UserQuery
     })
 }
 
+fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPreProcessorAll(p: List<Processor>): T {
+    p.forEach { addPreProcessor(it) }
+    return getBuilder()
+}
+
+
 fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPostProcessor(p: (q: UserQuery, r: ClientQueryEditor) -> Unit): T {
     return addPostProcessor(object : Processor {
         inline override fun process(q: UserQuery, response: ClientQueryEditor) {
             p(q, response)
         }
     })
+}
+
+fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPostProcessorAll(p: List<Processor>): T {
+    p.forEach { addPostProcessor(it) }
+    return getBuilder()
 }
 
 

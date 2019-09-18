@@ -6,6 +6,7 @@ import com.darkraha.backend.extensions.extractFileExtension
 import com.darkraha.backend.extensions.isTextMimetype
 import com.darkraha.backend.extraparams.UploadEP
 import com.darkraha.backend.helpers.Units
+import com.darkraha.backend.infos.ErrorInfo
 import com.darkraha.backend.infos.ResponseInfo
 import okhttp3.*
 import java.io.File
@@ -14,6 +15,10 @@ import okio.Okio
 import java.io.IOException
 import okhttp3.FormBody
 import okhttp3.RequestBody
+import java.net.MalformedURLException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import kotlin.Exception
 
 
 /**
@@ -50,8 +55,8 @@ open class HttpServiceDefault : HttpService {
 
     override fun checkLink(url: String, params: Map<String, String>?): ResponseInfo {
         val request = Request.Builder()
-            .url(url)
-            .head()
+                .url(url)
+                .head()
 
         addUrlParameters(request, params, url)
 
@@ -71,8 +76,8 @@ open class HttpServiceDefault : HttpService {
 
     override fun loadText(url: String, params: Map<String, String>?): ResponseInfo {
         val request = Request.Builder()
-            .url(url)
-            .get()
+                .url(url)
+                .get()
 
         addUrlParameters(request, params, url)
 
@@ -98,8 +103,8 @@ open class HttpServiceDefault : HttpService {
     override fun loadFile(url: String, fileDst: File): ResponseInfo {
 
         val request = Request.Builder()
-            .url(url)
-            .get()
+                .url(url)
+                .get()
 
 
         val ret = ResponseInfo()
@@ -175,38 +180,46 @@ open class HttpServiceDefault : HttpService {
 
     override fun handle(q: UserQuery, swh: ServiceWorkflowHelper, response: ClientQueryEditor) {
 
-        val url = q.url()!!
+        try {
+            val url = q.url()!!
 
-        var fileDst = q.fileDestination()
+            var fileDst = q.fileDestination()
 
-        if (fileDst != null) {
-            fileDst.parentFile.mkdirs()
-        }
+            if (fileDst != null) {
+                fileDst.parentFile.mkdirs()
+            }
 
-        with(HttpConsts) {
-            when (q.getCommand()) {
-                CMD_CHECK_LINK -> response.assignFrom(checkLink(url, q.namedParams()))
-                CMD_LOAD_TEXT -> response.assignFrom(loadText(url, q.namedParams()))
-                CMD_LOAD_FILE -> response.assignFrom(loadFile(url, q.fileDestination()!!))
-                CMD_POST_FORM -> response.assignFrom(postForm(url, q.namedParams()))
-                CMD_UPLOAD_FILE -> response.assignFrom(
-                    uploadFile(
-                        url,
-                        q.getExtraParamAs<UploadEP>()!!
+            with(HttpConsts) {
+                when (q.getCommand()) {
+                    CMD_CHECK_LINK -> response.assignFrom(checkLink(url, q.namedParams()))
+                    CMD_LOAD_TEXT -> response.assignFrom(loadText(url, q.namedParams()))
+                    CMD_LOAD_FILE -> response.assignFrom(loadFile(url, q.fileDestination()!!))
+                    CMD_POST_FORM -> response.assignFrom(postForm(url, q.namedParams()))
+                    CMD_UPLOAD_FILE -> response.assignFrom(
+                            uploadFile(
+                                    url,
+                                    q.getExtraParamAs<UploadEP>()!!
+                            )
                     )
-                )
-                else -> {
-                    handleAuto(q, swh, response)
+                    else -> {
+                        handleAuto(q, swh, response)
+                    }
                 }
             }
+        } catch (e: Exception) {
+            error(response, e)
+        }
+
+        if (q.isError()) {
+            setStdError(response.responseInfo())
         }
     }
 
 
     protected fun handleAuto(
-        q: UserQuery,
-        swh: ServiceWorkflowHelper,
-        response: ClientQueryEditor
+            q: UserQuery,
+            swh: ServiceWorkflowHelper,
+            response: ClientQueryEditor
     ) {
 
         val url = q.url()!!
@@ -219,7 +232,7 @@ open class HttpServiceDefault : HttpService {
 
 
         val request = Request.Builder()
-            .url(url)
+                .url(url)
 
         var method = q.method()!!
 
@@ -274,7 +287,7 @@ open class HttpServiceDefault : HttpService {
                     }
 
                     if (tmpFile == null && ((q.isOptionSaveFile() || contentSize > Units.Kb * 500)
-                                || (!mimeTypeTxt && !q.isOptionSaveBytes()))
+                                    || (!mimeTypeTxt && !q.isOptionSaveBytes()))
                     ) {
                         fileDst = File("${url.encodeMd5()}.${url.extractFileExtension()}")
                         tmpFile = getTmpFileFor(fileDst)
@@ -294,6 +307,7 @@ open class HttpServiceDefault : HttpService {
                             response.setRawString(fileDst?.readText(), true)
                         }
 
+
                     } else {
 
                         if (q.isOptionSaveBytes()) {
@@ -303,15 +317,20 @@ open class HttpServiceDefault : HttpService {
                         }
                     }
 
+
                 } else {
-                    error(response, it)
+                    error(q, response, it)
                 }
+
+                true
             }
         }.onFailure {
             error(response, it)
-            getTmpFileFor(fileDst)?.delete()
         }
 
+        if (q.isError()) {
+            getTmpFileFor(fileDst)?.delete()
+        }
     }
 
 
@@ -340,12 +359,12 @@ open class HttpServiceDefault : HttpService {
     protected fun getMultipartBody(upload: UploadEP?, params: Map<String, String>?): RequestBody {
 
         val body = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
+                .setType(MultipartBody.FORM)
 
         if (upload != null) {
             body.addFormDataPart(
-                upload.name, upload.srvFilename,
-                RequestBody.create(MediaType.parse(upload.mimetype), upload.file)
+                    upload.name, upload.srvFilename,
+                    RequestBody.create(MediaType.parse(upload.mimetype), upload.file)
             )
         }
 
@@ -362,10 +381,10 @@ open class HttpServiceDefault : HttpService {
     open protected fun getHttpOkDefault(): OkHttpClient {
 
         return OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build();
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .build();
     }
 
 
@@ -411,8 +430,8 @@ open class HttpServiceDefault : HttpService {
 
     @Throws(IOException::class)
     protected fun copy(
-        body: ResponseBody?, file: File, query: UserQuery, srvHelper: ServiceWorkflowHelper,
-        contentLength: Long
+            body: ResponseBody?, file: File, query: UserQuery, srvHelper: ServiceWorkflowHelper,
+            contentLength: Long
     ) {
 
         body?.source()?.use { source ->
@@ -444,7 +463,7 @@ open class HttpServiceDefault : HttpService {
 
     @Throws(IOException::class)
     protected fun copy(
-        body: ResponseBody?, file: File
+            body: ResponseBody?, file: File
     ) {
 
         body?.source()?.use { source ->
@@ -480,8 +499,8 @@ open class HttpServiceDefault : HttpService {
     }
 
 
-    fun error(response: ClientQueryEditor, it: Response) {
-        response.error(it.code(), it.message() + "\n" + it.body().toString(), null)
+    fun error(query: UserQuery, response: ClientQueryEditor, it: Response) {
+        response.error(it.code(), "Error with ${query.url()} code=${it.code()} msg=${it.message()} body=${it.body().toString()}", null)
     }
 
     fun error(responseInfo: ResponseInfo, it: Throwable) {
@@ -490,6 +509,44 @@ open class HttpServiceDefault : HttpService {
 
     fun error(response: ClientQueryEditor, it: Throwable) {
         response.error(0, it.message, it)
+    }
+
+
+    fun setStdError(responseInfo: ResponseInfo) {
+
+        when {
+            responseInfo.resultCode in 400..499 -> {
+                responseInfo.errorInfo.srvCode = responseInfo.resultCode
+                responseInfo.errorInfo.code = ErrorInfo.ERR_SERVER_ERROR
+            }
+
+            responseInfo.resultCode in 500..599 -> {
+                responseInfo.errorInfo.srvCode = responseInfo.resultCode
+                responseInfo.errorInfo.code = ErrorInfo.ERR_SERVER_UNAVAILABLE
+            }
+
+            responseInfo.errorInfo.exception is UnknownHostException -> {
+                responseInfo.errorInfo.code = ErrorInfo.ERR_INTERNET_HOST
+            }
+
+            responseInfo.errorInfo.exception is MalformedURLException -> {
+                responseInfo.errorInfo.code = ErrorInfo.ERR_INTERNET_URI_PARSE
+            }
+
+            responseInfo.errorInfo.exception is SocketTimeoutException -> {
+                responseInfo.errorInfo.code = ErrorInfo.ERR_INTERNET_CONNECTION
+            }
+
+            responseInfo.errorInfo.exception is SecurityException -> {
+                responseInfo.errorInfo.code = ErrorInfo.ERR_FILE_ACCESS_DENIED
+            }
+
+            responseInfo.errorInfo.exception is IOException -> {
+                responseInfo.errorInfo.code = ErrorInfo.ERR_IO
+            }
+        }
+
+
     }
 
 }

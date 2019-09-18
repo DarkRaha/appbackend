@@ -1,21 +1,20 @@
 package com.darkraha.backend.components.json
 
 import java.lang.reflect.Type
-import kotlin.reflect.KClass
 
 interface JsonManager {
-    fun <T> fromJson(src: String, clsDst: Class<T>): T
+    fun <T> fromJsonString(src: String, clsDst: Class<T>): T
 
     /**
      * @param src
      * @param clsDst
-     * @param <SRC>  depend from used library
+     * @param <SRC> some json object, depend from used library
      * @param <T>
      * @return
     </T></SRC> */
     fun <SRC : Any, T > fromJson(src: SRC, clsDst: Class<T>): T
 
-    fun toJson(obj: Any): String
+    fun toJsonString(obj: Any): String
 
     fun addTypeAdapter(type: Type, typeAdapter: Any)
 }

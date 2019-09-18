@@ -11,10 +11,10 @@ import kotlin.reflect.full.isSubclassOf
  * @author Verma Rahul
  */
 abstract class FileDecoder(
-    srcMimetype: String,
-    srcFileExtensions: Array<String>,
-    dstClass: KClass<*>,
-    extraParamClass: KClass<*>? = null
+        srcMimetype: String,
+        srcFileExtensions: Array<String>,
+        dstClass: KClass<*>,
+        extraParamClass: KClass<*>? = null
 ) {
 
     val srcFileExtensions = srcFileExtensions
@@ -38,8 +38,8 @@ abstract class FileDecoder(
 //            print(" "+it)
 //        }
 
-        return (srcMimetype == aSrcMimetype ||
-                (srcFileExtensions.size == 0 || src is File && src.extension.toLowerCase() in srcFileExtensions))
+        return ((srcFileExtensions.size > 0 || src is File && src.extension.toLowerCase() in srcFileExtensions)
+                || srcMimetype == aSrcMimetype)
                 && (aDstClass?.isSubclassOf(dstClass) ?: true)
                 && (extraParam == null || extraParamClass?.isInstance(extraParam) ?: false)
     }
@@ -84,10 +84,10 @@ abstract class FileDecoder(
  * Decode file as ByteArray.
  */
 open class BinaryFileDecoder(
-    srcMimetype: String = "application/x-binary",
-    srcFileExtensions: Array<String> = arrayOf(),
-    dstClass: KClass<*> = ByteArray::class,
-    extraParamClass: KClass<*>? = null
+        srcMimetype: String = "application/x-binary",
+        srcFileExtensions: Array<String> = arrayOf(),
+        dstClass: KClass<*> = ByteArray::class,
+        extraParamClass: KClass<*>? = null
 ) : FileDecoder(srcMimetype, srcFileExtensions, dstClass, extraParamClass) {
 
     override fun onDecoding(inStream: InputStream, dst: Any?, extraParam: Any?): Any? {
@@ -99,10 +99,10 @@ open class BinaryFileDecoder(
  * Decode file as String.
  */
 open class TextFileDecoder(
-    srcMimetype: String = "text/plain",
-    srcFileExtensions: Array<String> = arrayOf(),
-    dstClass: KClass<*> = String::class,
-    extraParamClass: KClass<*>? = null
+        srcMimetype: String = "text/plain",
+        srcFileExtensions: Array<String> = arrayOf(),
+        dstClass: KClass<*> = String::class,
+        extraParamClass: KClass<*>? = null
 ) : FileDecoder(srcMimetype, srcFileExtensions, dstClass, extraParamClass) {
 
     override fun onDecoding(inStream: InputStream, dst: Any?, extraParam: Any?): Any? {
