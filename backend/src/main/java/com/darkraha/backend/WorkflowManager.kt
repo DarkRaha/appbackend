@@ -36,7 +36,7 @@ interface WorkflowExecutor {
 
 
 interface WorkflowCancel {
-    fun cancel(code: Int=CancelInfo.CANCEL_BY_USER, message: String?="Canceled by user.")
+    fun cancel(code: Int = CancelInfo.CANCEL_BY_USER, message: String? = "Canceled by user.")
     /**
      * @param uiWithProgressListener when true, then progress listener that correspond to the ui object will be removed
      */
@@ -70,17 +70,14 @@ interface Workflow {
 
     fun getAppendedQueries(): List<WorkflowAppend>
 
-
     fun waitFinish(time: Long = 0): UserQuery
 
-
-    /**
-     * When user don't need query, it can free. Used when waitFinish method invoked.
-     */
     fun free()
+
+    fun use()
 }
 
-interface ClientQueryEditor: WorkflowCancel {
+interface ClientQueryEditor : WorkflowCancel {
 
     fun assignFrom(src: ResponseInfo)
     fun setResult(r: Any?)
@@ -100,7 +97,6 @@ interface ClientQueryEditor: WorkflowCancel {
     fun error(msg: String?)
 
 }
-
 
 
 /**
@@ -269,6 +265,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         state.clearFlag(F_RUN_SYNC)
     }
 
+    fun isRunSync() = state.isFlag(F_RUN_SYNC)
+
 
 //-------------------------------------------------------------------------------------------------
 // workflow
@@ -348,19 +346,23 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     private fun prepare() {
         setPrepare()
-        queryManager?.onQueryStart(owner)
-        client?.onQueryStart(owner)
-        dispatchWorkflowListeners(WORKFLOW_PREPARE_START)
 
-
-        dispatchPrepare()
+        try {
+            queryManager?.onQueryStart(owner)
+            client?.onQueryStart(owner)
+            dispatchWorkflowListeners(WORKFLOW_PREPARE_START)
+            dispatchPrepare()
+        } catch (e: Exception) {
+            error(ErrorInfo.ERR_WORKFLOW, e.localizedMessage, e)
+        }
 
         if (isWorkflowPossible()) {
             dispatchCallbacksPrepare()
+            dispatchWorkflowListeners(WORKFLOW_PREPARE_END)
+            dispatchProgressStart()
         }
 
         setPrepareDone()
-        dispatchWorkflowListeners(WORKFLOW_PREPARE_END)
     }
 
 
@@ -369,7 +371,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             setBackground(true)
             bgThread = Thread.currentThread()
         }
-        dispatchProgressStart()
+
         dispatchWorkflowListeners(WORKFLOW_BACKGROUND_START)
         if (syncResource != null) {
             LockManager.lock(syncResource!!)
@@ -380,8 +382,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
                 service!!.handle(owner, owner, owner)
                 println("after service " + response.rawResultString + " isWorkflowPossible " + isWorkflowPossible())
                 dispatchPost()
-            } else {
-                throw IllegalStateException("WorkflowManager not possible. canceled='${response.cancelInfo.message}' err='${response.errorInfo.message}'")
             }
         }.onFailure {
             error(ErrorInfo.ERR_WORKFLOW, it.message, it)
@@ -407,12 +407,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         dispatchWorkflowListeners(WORKFLOW_FINISH_START)
 
         if (hasCallbacks()) {
-            if (state.isFlag(F_RUN_SYNC)) {
+            mainThread!!.execute {
                 finishCallbacks()
-            } else {
-                mainThread!!.execute {
-                    finishCallbacks()
-                }
             }
         } else {
             finish_end()
@@ -429,21 +425,10 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     private fun finish_end() {
         if (isError()) {
-            val backendErrorInfo = Backend._sharedInstance?.error?.value
-            if (backendErrorInfo != null) {
-                response.errorInfo.clientClassName = client?.javaClass?.simpleName
-                response.errorInfo.serviceClassName = service?.javaClass?.simpleName
-                backendErrorInfo.set(response.errorInfo)
-                Backend._sharedInstance?.error?.notifyDataChanged()
-            }
-            println("Error notification: ${response.errorInfo}")
             response.errorInfo.exception?.printStackTrace()
-        } else if (isCanceled()) {
-            println("WorkflowManager query canceled: " + response.cancelInfo.message + " code = " + response.cancelInfo.code)
         }
 
-
-
+         println("Finished ${owner}")
         dispatchWorkflowListeners(WORKFLOW_FINISH_END)
         queryManager?.onQueryEnd(owner)
         client?.onQueryEnd(owner)
@@ -458,14 +443,12 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     private fun _free() {
         lock.lock()
 
-        if (client != null) {
-            if (!isUsed() || (isReadyForFree() && externalUsers <= 0)) {
-                dispatchWorkflowListeners(WORKFLOW_ON_FREE)
-                client!!.onQueryFree(owner)
-                state.clear()
-                owner.clear()
-                queryManager?.backQuery(owner)
-            }
+        if (!isUsed() || (isReadyForFree() && externalUsers <= 0)) {
+            dispatchWorkflowListeners(WORKFLOW_ON_FREE)
+            client?.onQueryFree(owner)
+            queryManager?.backQuery(owner)
+            state.clear()
+            owner.clear()
         }
 
         lock.unlock()
@@ -518,6 +501,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
     private fun dispatchCallbacks(q: Query) {
+
         when {
             isSuccess() -> dispatchCallbacksSuccess(q)
             isError() -> dispatchCallbacksError(q)
@@ -853,36 +837,57 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
     fun dispatchProgressStart() {
+
         synchronized(syncProgress) {
-            progressListener?.onStart()
+            try {
+                progressListener?.onStart()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     fun dispatchProgressEnd() {
-        synchronized(syncProgress) {
-            progressListener?.onEnd()
+        try {
+            synchronized(syncProgress) {
+                progressListener?.onEnd()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         synchronized(appended) {
             if (appended.size > 0) {
                 appended.forEach {
-                    it.progressListener?.onEnd()
+                    try {
+                        it.progressListener?.onEnd()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             }
         }
     }
 
-    fun dispatchProgress(current: Long, total: Long) {
+    fun dispatchProgress(current: Float, total: Float) {
 
         synchronized(syncProgress) {
-            progressListener?.onProgress(current, total)
+            try {
+                progressListener?.onProgress(current, total)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
 
         synchronized(appended) {
             if (appended.size > 0) {
                 appended.forEach {
-                    it.progressListener?.onProgress(current, total)
+                    try {
+                        it.progressListener?.onProgress(current, total)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
             }
         }
@@ -938,7 +943,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun workflowStep(): Int = workflowStep
 
     //----------------------------------------------------------------------------------------
-
+    // todo use awaitility
     override fun waitFinish(time: Long): UserQuery {
         if (isWorkflowPossible()) {
             lock.lock()
@@ -959,6 +964,13 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         lock.lock()
         externalUsers--
         _free()
+        lock.unlock()
+    }
+
+
+    override fun use() {
+        lock.lock()
+        externalUsers++
         lock.unlock()
     }
 
@@ -1063,7 +1075,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
 
-    override fun cancel(code: Int , message: String? ) {
+    override fun cancel(code: Int, message: String?) {
 
         if (state.setFlagMustAnyAndNon(
                         F_CANCELED,
@@ -1161,12 +1173,12 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         error(-1, if (e != null) e.message else null, e)
     }
 
-    override fun error(msg: String?){
-        error(-1,msg, null)
+    override fun error(msg: String?) {
+        error(-1, msg, null)
     }
 
     override fun resultCode(code: Int) {
-       response.resultCode = code
+        response.resultCode = code
     }
 
     override fun resultMessage(msg: String?) {

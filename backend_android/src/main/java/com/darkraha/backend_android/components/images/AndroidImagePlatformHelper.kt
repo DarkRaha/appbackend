@@ -11,7 +11,7 @@ import com.darkraha.backend_android.components.endecode.GifImageDecoder
 import com.darkraha.backend_android.components.endecode.JpegImageDecoder
 import com.darkraha.backend_android.components.endecode.PngImageDecoder
 import com.darkraha.backend_android.components.images.gif.GifDrawable
-
+// todo replace by BackendImage
 open class AndroidImagePlatformHelper : ImagePlatformHelper {
     override fun onAttach(imageManager: ImageManagerClient) {
         imageManager.addImageDecoder(JpegImageDecoder())
@@ -44,23 +44,4 @@ open class AndroidImagePlatformHelper : ImagePlatformHelper {
 
         }
     }
-
-    override fun startAnimation(ui: Any?) {
-        if (ui is ImageView) {
-            val drw = ui.drawable
-            if (drw is Animatable) {
-                drw.start()
-            }
-        }
-    }
-
-    override fun stopAnimation(ui: Any?) {
-        if (ui is ImageView) {
-            val drw = ui.drawable
-            if (drw is Animatable) {
-                drw.stop()
-            }
-        }
-    }
-
 }

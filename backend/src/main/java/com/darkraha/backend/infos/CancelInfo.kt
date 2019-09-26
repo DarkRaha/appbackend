@@ -19,6 +19,10 @@ class CancelInfo {
     }
 
 
+    override fun toString(): String {
+        return "CancelInfo{ code = ${code} message='${message}' }"
+    }
+
     companion object {
 
         @JvmStatic
@@ -47,6 +51,12 @@ class CancelInfo {
          */
         @JvmStatic
         val CANCEL_BY_CLIENT = 5
+
+        /**
+         * Special type of canceling, when callbacks not invoked.
+         */
+        @JvmStatic
+        val REJECTED_BY_CLIENT = 6
 
 
     }

@@ -33,6 +33,8 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Reads frame data from a GIF image source and decodes it into individual frames
@@ -132,6 +134,8 @@ public class GifDecoder {
 
     protected int framePointer;
     protected int frameCount;
+
+    protected AtomicLong timeOfFrame = new AtomicLong();
 
     /**
      * Inner model class housing metadata for each frame
@@ -287,7 +291,16 @@ public class GifDecoder {
             act[frame.transIndex] = save;
         }
 
+        timeOfFrame.set(System.currentTimeMillis());
         return currentImage;
+    }
+
+    public Bitmap getCurrentFrame() {
+        return currentImage;
+    }
+
+    public long getTimeOfFrame() {
+        return timeOfFrame.get();
     }
 
     /**

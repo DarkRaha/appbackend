@@ -36,6 +36,9 @@ class DataInfo(value: Any? = null, mimetype: String? = null, cls: KClass<*>? = n
         mimetype = src.mimetype
     }
 
+    override fun toString(): String {
+        return "DataInfo{value=${value} cls=${cls} clsItem=${clsItem} mimetype=${mimetype}}"
+    }
 
     fun isSupportSource(v: DataInfo, extensions: Array<String>?) {
         val value = v.value

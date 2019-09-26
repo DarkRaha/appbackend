@@ -21,7 +21,7 @@ interface QueryLifeListener {
 interface ProgressListener {
     fun onStart() {}
     fun onEnd() {}
-    fun onProgress(current: Long, total: Long)
+    fun onProgress(current: Float, total: Float)
 }
 
 class UIProgressListenerWrapper(pl: ProgressListener, mt: MainThread = Backend.sharedInstance!!.mainThread) :
@@ -30,7 +30,7 @@ class UIProgressListenerWrapper(pl: ProgressListener, mt: MainThread = Backend.s
     val mainThread = mt
     val progressListener = pl
 
-    override fun onProgress(current: Long, total: Long) {
+    override fun onProgress(current: Float, total: Float) {
         mainThread.post {
             progressListener.onProgress(current, total)
         }

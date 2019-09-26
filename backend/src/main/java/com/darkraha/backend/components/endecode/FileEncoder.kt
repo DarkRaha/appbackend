@@ -13,10 +13,10 @@ import kotlin.reflect.KClass
  * @author Verma Rahul
  */
 abstract class FileEncoder(
-    srcClass: KClass<*>,
-    dstMimetype: String,
-    dstFileExtension: String,
-    extraParamClass: KClass<*>? = null
+        srcClass: KClass<*>,
+        dstMimetype: String,
+        dstFileExtension: String,
+        extraParamClass: KClass<*>? = null
 ) {
 
     val srcClass = srcClass
@@ -26,10 +26,11 @@ abstract class FileEncoder(
 
 
     fun isSupportEncode(src: Any?, dst: Any?, aDstMimetype: String? = null, extraParam: Any? = null): Boolean {
-        return srcClass.isInstance(src)
-                && ((dst is File && dst.extension.toLowerCase() == dstFileExtension) || dstMimetype == aDstMimetype )
-                && (extraParam == null || extraParamClass?.isInstance(extraParam) ?: false)
+        return (src == null || srcClass.isInstance(src))
+                && ((dst is File && dst.extension.toLowerCase() == dstFileExtension) || dstMimetype == aDstMimetype)
+                && (extraParam == null || (extraParamClass?.isInstance(extraParam) ?: false))
     }
+
 
     open fun encodeToAny(src: Any?, dst: Any?, extraParam: Any? = null): Boolean {
         if (src == null || dst == null || !srcClass.isInstance(src)) {

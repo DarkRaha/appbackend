@@ -220,17 +220,17 @@ class ImageManagerDefaultTest {
             }
         }
 
-        override fun startAnimation(ui: Any?) {
-            if (ui is ImageUi) {
-                ui.image?.animated = true
-            }
-        }
-
-        override fun stopAnimation(ui: Any?) {
-            if (ui is ImageUi) {
-                ui.image?.animated = false
-            }
-        }
+//        override fun startAnimation(ui: Any?) {
+//            if (ui is ImageUi) {
+//                ui.image?.animated = true
+//            }
+//        }
+//
+//        override fun stopAnimation(ui: Any?) {
+//            if (ui is ImageUi) {
+//                ui.image?.animated = false
+//            }
+//        }
     }
 
 

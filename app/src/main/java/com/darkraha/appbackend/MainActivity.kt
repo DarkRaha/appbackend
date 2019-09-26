@@ -28,7 +28,10 @@ class MainActivity : AppCompatActivity() {
 
         //  imageManager.getDiskcache().buildClear().exeSync()
         // val url = "https://pm1.narvii.com/6652/96cfbc896f4f277f98f09d049bd835baed62a0bf_hq.jpg"
-        val url = "https://i.gifer.com/Vimq.gif"
+        val url =
+        "https://i.kinja-img.com/gawker-media/image/upload/s--mNVOtE0R--/c_scale,f_auto,fl_progressive,q_80,w_1600/ttgduophm1etj8iaobir.gif"
+        //  "https://gamespot1.cbsistatic.com/uploads/screen_kubrick/1578/15787979/3584344-0257016877-world.jpg"
+        //"https://i.gifer.com/Vimq.gif"
         imageManager.load(
             url,
             image, object : QueryCallback {

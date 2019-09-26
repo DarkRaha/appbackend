@@ -7,6 +7,7 @@ import com.darkraha.backend.components.endecode.EndecodeClient
 import com.darkraha.backend.components.endecode.EndecodeClientDefault
 import com.darkraha.backend.components.http.HttpClient
 import com.darkraha.backend.components.http.HttpClientDefault
+import com.darkraha.backend.infos.CancelInfo
 import java.util.concurrent.ExecutorService
 
 
@@ -36,16 +37,19 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
     override fun onDecodeSuccessCallback(query: UserQuery) {
 
         if (query.chainTypeResponse() == ChainType.LAST_ELEMENT
-            || query.chainTypeResponse() == ChainType.STAND_ALONE
+                || query.chainTypeResponse() == ChainType.STAND_ALONE
         ) {
 
             assignImage(query)
-            val url = query.getQueryId()
-            val img = query.result()
+//            val url = query.getQueryId()
+//            val img = query.result()
 
-            if (url != null && img != null) {
-                cache[url] = img
-            }
+//            if (url != null && img != null) {
+//                cache[url] = img
+//                 println("ImageManagerClientA (Default) save to memory result: result=${img?.javaClass?.simpleName} url: ${url} img=${cache[url]}")
+//            } else {
+//                println("ImageManagerClientA (Default)Can not save to memory result: result=${img?.javaClass?.simpleName} url: ${url} ")
+//            }
         }
     }
 
@@ -77,18 +81,36 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         checkCachesBeforeLoad(q, response)
     }
 
-    override fun onPreDecode(q: UserQuery, response: ClientQueryEditor) {
-        checkMemCache(q, response)
-    }
 
     override fun onPrepareDecode(q: UserQuery, response: ClientQueryEditor) {
-        if (q.isStandAloneQuery()) {
-            val ui = q.uiParam()
-            if (ui != null) {
-                uiUrlMap[ui] = q.getQueryId()
+         if (q.isStandAloneQuery()) {//?
+            q.uiParam()?.let {
+                uiUrlMap[it] = q.getQueryId()
             }
         }
     }
+
+    override fun onPreDecode(q: UserQuery, response: ClientQueryEditor) {
+        q.uiParam()?.let {
+            if (q.getQueryId() != uiUrlMap[it]) {
+                q.cancel(CancelInfo.CANCEL_BY_USER, "Canceled, ui object not corresponds to url ${q.getQueryId()}.")
+                println("ImageManagerClientDefault ${q.cancelInfo()}")
+                return
+            }
+        }
+
+        checkMemCache(q, response)
+    }
+
+    override fun onPostDecode(q: UserQuery, response: ClientQueryEditor) {
+        q.getQueryId()?.let {
+            val img = q.result()!!
+            if (cache[it] == null) {
+                cache[it] = img
+            }
+        }
+    }
+
 
     class Builder : ClientBuilder<ImageManagerClientDefault, ImageManagerService, Builder>() {
 
@@ -150,7 +172,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         open fun checkHttpClient() {
             if (_httpClient == null) {
                 _httpClient = _backend?.httpClient ?: HttpClientDefault.Builder().queryManager(
-                    _queryManager!!
+                        _queryManager!!
                 ).build()
             }
         }
@@ -158,7 +180,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         open fun checkEndecodeClient() {
             if (_endecodeClient == null) {
                 _endecodeClient = _backend?.endecodeClient
-                    ?: EndecodeClientDefault.Builder().queryManager(result.queryManager).build()
+                        ?: EndecodeClientDefault.Builder().queryManager(result.queryManager).build()
             }
         }
 
@@ -168,6 +190,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
             checkDiskcache()
             checkHttpClient()
             checkEndecodeClient()
+
 
             result.diskCacheClient = _diskCacheClient!!
             result.httpClient = _httpClient!!

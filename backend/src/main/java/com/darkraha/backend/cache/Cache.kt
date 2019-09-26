@@ -31,6 +31,9 @@ class SoftRef(v: Any) : SoftReference<Any>(v) {
     var usage: Int = 0
 }
 
+interface MemoryUsage {
+    val memUsage: Int
+}
 
 typealias MemUsageCalculator = (Any) -> Int
 

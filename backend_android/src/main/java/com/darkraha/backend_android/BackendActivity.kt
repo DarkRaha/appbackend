@@ -2,27 +2,40 @@ package com.darkraha.backend_android
 
 import android.support.v7.app.AppCompatActivity
 import com.darkraha.backend.Backend
-import com.darkraha.backend.infos.ErrorInfo
-import com.darkraha.backend.livedata.ChangeListener
+import com.darkraha.backend.UserQuery
+import com.darkraha.backend_android.extensions.backend
 
 /**
  * @author Verma Rahul
  */
-open class BackendActivity : AppCompatActivity(), ChangeListener<ErrorInfo> {
+open class BackendActivity : AppCompatActivity() {
+
 
     override fun onResume() {
         super.onResume()
-        Backend._sharedInstance?.error?.addChangeListener(this)
+        registerListeners()
     }
 
     override fun onPause() {
+        unregisterListeners()
         super.onPause()
-        Backend._sharedInstance?.error?.removeChangeListener(this)
-    }
-
-    override fun onChange(newValue: ErrorInfo?) {
-
 
     }
 
+
+    open fun registerListeners() {
+        backend.error.addListener(this::onError)
+    }
+
+    open fun unregisterListeners() {
+        backend.error.removeListener(this::onError)
+    }
+
+    /**
+     * Handles errors of backend.
+     */
+    open fun onError(newValue: UserQuery?) {
+
+
+    }
 }

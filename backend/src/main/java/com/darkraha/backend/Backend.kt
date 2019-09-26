@@ -15,8 +15,10 @@ import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.components.mainthread.MainThreadDefault
 import com.darkraha.backend.components.qmanager.QueryManager
 import com.darkraha.backend.components.qmanager.QueryManagerDefault
-import com.darkraha.backend.infos.ErrorInfo
-import com.darkraha.backend.livedata.UIObservable
+import com.darkraha.backend.components.restclient.JsonRestClientBase
+import com.darkraha.backend.helpers.ErrorFilterManager
+import com.darkraha.backend.livedata.UIEventT
+
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.LinkedBlockingQueue
@@ -61,7 +63,11 @@ open class Backend private constructor() {
     lateinit var workdir: File
         protected set
 
-    val error = UIObservable(ErrorInfo(),"Error")
+    lateinit var error: UIEventT<UserQuery>
+        protected set
+
+    lateinit var errorFilter: ErrorFilterManager
+        protected set
 
     /**
      *
@@ -132,9 +138,9 @@ open class Backend private constructor() {
         @JvmStatic
         fun newExecutorPool(maxThreads: Int): ThreadPoolExecutor {
             return ThreadPoolExecutor(
-                0, maxThreads,
-                2L, TimeUnit.MINUTES,
-                LinkedBlockingQueue<Runnable>()
+                    0, maxThreads,
+                    2L, TimeUnit.MINUTES,
+                    LinkedBlockingQueue<Runnable>()
             )
         }
 
@@ -154,6 +160,7 @@ open class Backend private constructor() {
         private var _imagePlatformHelper: ImagePlatformHelper? = null
         private var _workdir: File? = null
         private var _jsonManager: JsonManager? = null
+        private var _errorFilter: ErrorFilterManager? = null
 
 
         fun setAsShared(): Builder {
@@ -207,43 +214,56 @@ open class Backend private constructor() {
             return this
         }
 
+        fun errorFilter(ef: ErrorFilterManager): Builder {
+            _errorFilter = ef
+            return this
+        }
+
+
         fun build(): Backend {
 
             val file = File("")
 
             result.jsonManager = _jsonManager ?: JsonManagerDefault()
             result.mainThread = _mainThread ?: MainThreadDefault()
+            result.error = UIEventT("Backend error", null, result.mainThread)
+
             result.queryManager = _queryManager ?: QueryManagerDefault()
             result.workdir = _workdir ?: File("workdir")
 
             result.diskCacheClient =
-                _diskCacheClient ?: DiskCacheClientDefault.Builder()
-                    .backend(result)
-                    .build()
+                    _diskCacheClient ?: DiskCacheClientDefault.Builder()
+                            .backend(result)
+                            .build()
 
             result.httpClient =
-                _httpClient ?: HttpClientDefault.Builder().backend(result).build()
+                    _httpClient ?: HttpClientDefault.Builder().backend(result).build()
 
             result.endecodeClient =
-                _endecodeClient
-                    ?: EndecodeClientDefault.Builder().backend(result).build()
+                    _endecodeClient
+                            ?: EndecodeClientDefault.Builder().backend(result).build()
 
             result.imageManager = _imageManager ?: ImageManagerClientDefault.Builder()
-                .mainThread(result.mainThread)
-                .diskCacheClient(result.diskCacheClient.subClient("images"))
-                .endecodeClient(result.endecodeClient)
-                .imagePlatformHelper(_imagePlatformHelper ?: ImagePlatformHelperEmpty())
-                .build()
+                    .backend(result)
+                    .diskCacheClient(result.diskCacheClient.subClient("images"))
+                    .endecodeClient(result.endecodeClient)
+                    .httpClient(result.httpClient)
+                    .imagePlatformHelper(_imagePlatformHelper ?: ImagePlatformHelperEmpty())
+                    .build()
 
             result.executor = _executor ?: ThreadPoolExecutor(
-                0, 10,
-                2L, TimeUnit.MINUTES,
-                LinkedBlockingQueue<Runnable>()
+                    0, 30,
+                    2L, TimeUnit.MINUTES,
+                    LinkedBlockingQueue<Runnable>()
             )
 
             if (_asShared || _sharedInstance == null) {
                 _sharedInstance = result
             }
+
+
+            result.errorFilter = _errorFilter
+                    ?: ErrorFilterManager()
 
             result.setup()
             return result

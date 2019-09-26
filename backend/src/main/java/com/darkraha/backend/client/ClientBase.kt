@@ -20,11 +20,10 @@ import kotlin.concurrent.withLock
 open class ClientBase : Client, QueryLifeListener {
 
     protected val lock = ReentrantLock()
-    protected val condEndAny = lock.newCondition()
-    protected val condFree = lock.newCondition()
     protected val common = Query()
     protected var commandForTracking = HashSet<String>()
     protected var trackedQueries: LinkedList<Query>? = null
+    protected var backend: Backend? = null
 
     /**
      * Callbacks that will be called for every query of this client.
@@ -140,14 +139,29 @@ open class ClientBase : Client, QueryLifeListener {
         if (otherClient == null) {
             q.addOrSetFrom(common)
         } else {
+            q.workflow.workflowListener.clear()
             q.client(this)
                     .addPostProcessorAll(common.workflow.postProcessor)
                     .addPrepareProcessorAll(common.workflow.prepareProcessor)
                     .addPreProcessorAll(common.workflow.preProcessor)
+                    .addWorkflowListenerAll(common.workflow.workflowListener)
         }
 
         return q
     }
+
+
+    override fun prepareQueryFrom(srcQuery: Query): Query {
+       return srcQuery.also {
+            it.workflow.workflowListener.clear()
+            it.client(this)
+                    .addPostProcessorAll(common.workflow.postProcessor)
+                    .addPrepareProcessorAll(common.workflow.prepareProcessor)
+                    .addPreProcessorAll(common.workflow.preProcessor)
+                    .addWorkflowListenerAll(common.workflow.workflowListener)
+        }
+    }
+
 
 
     override fun buildQuery(): QueryBuilder<WorkflowBuilder1> {
@@ -192,15 +206,22 @@ open class ClientBase : Client, QueryLifeListener {
             }
         }
 
-        lock.withLock {
-            condEndAny.signalAll()
+
+
+        backend?.also {
+            if (q.isError()) {
+                if (it.errorFilter.isNotifyError(q)) {
+                    q.use()
+                    it.error.notifyObserversWith(q) {
+                        it.free()
+                    }
+                }
+            }
         }
     }
 
     override fun onQueryFree(q: Query) {
-        lock.withLock {
-            condFree.signalAll()
-        }
+
     }
 
 
@@ -210,26 +231,18 @@ open class ClientBase : Client, QueryLifeListener {
 
 
     override fun onAddToBackend(backend: Backend) {
+        this.backend = backend
         mainThread = backend.mainThread
         queryManager = backend.queryManager
     }
 
     override fun waitQuery(query: Query, time: Long) {
-        if (query.client() != this) {
-            throw IllegalStateException("Query don't belong to this client")
-        }
-        query.workflow.waitFinish(time)
+
     }
 
 
     override fun waitQueryAny(time: Long) {
-        lock.withLock {
-            if (time > 0) {
-                condEndAny.await(time, TimeUnit.MILLISECONDS)
-            } else {
-                condEndAny.await()
-            }
-        }
+
     }
 
     //-----------------------------------------------------------------------------------
@@ -242,11 +255,11 @@ open class ClientBase : Client, QueryLifeListener {
         }
     }
 
-    fun addCommandsForTracking(vararg cmds: String){
-        synchronized(commandForTracking){
+    fun addCommandsForTracking(vararg cmds: String) {
+        synchronized(commandForTracking) {
             commandForTracking.addAll(cmds)
-            if(trackedQueries==null){
-                trackedQueries=LinkedList()
+            if (trackedQueries == null) {
+                trackedQueries = LinkedList()
             }
         }
     }
@@ -323,6 +336,9 @@ open class ClientBase : Client, QueryLifeListener {
             if (_mainThread == null) {
                 _mainThread = _backend?.mainThread ?: MainThreadDefault()
             }
+
+            println("ClientBase _backend = ${_backend} mainThread = ${_backend?.mainThread?.javaClass?.simpleName} _mainThread=${
+            _mainThread?.javaClass?.simpleName} client=${result.javaClass.simpleName}")
         }
 
 
@@ -353,7 +369,7 @@ open class ClientBase : Client, QueryLifeListener {
         )
 
 
-        open fun backend(back: Backend): Builder {
+        open fun backend(back: Backend?): Builder {
             _backend = back
             return builder
         }

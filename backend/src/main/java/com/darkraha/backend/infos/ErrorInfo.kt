@@ -12,8 +12,7 @@ interface ErrorReader {
 
 class ErrorInfo : ErrorReader {
 
-    var clientClassName: String? = null
-    var serviceClassName: String? = null
+
     var code = 0
     var srvCode = 0
     var message: String? = null
@@ -35,8 +34,7 @@ class ErrorInfo : ErrorReader {
             srvCode = src.srvCode
             message = src.message
             exception = src.exception
-            clientClassName = src.clientClassName
-            serviceClassName = src.serviceClassName
+
             exceptionsCallbacks.clear()
             exceptionsCallbacks.addAll(src.exceptionsCallbacks)
         }
@@ -44,7 +42,7 @@ class ErrorInfo : ErrorReader {
 
 
     override fun toString(): String {
-        return "ErrorInfo{ code=${code} srvCode=${srvCode} message=${message} exception=${exception} client='${clientClassName}' service='${serviceClassName}' callbacks error count=${exceptionsCallbacks.size}}"
+        return "ErrorInfo{ code=${code} srvCode=${srvCode} message=${message} exception=${exception} }"
     }
 
     fun clear() {
@@ -52,13 +50,11 @@ class ErrorInfo : ErrorReader {
         srvCode = 0
         message = null
         exception = null
-        serviceClassName = null
-        clientClassName = null
         exceptionsCallbacks.clear()
     }
 
     override fun errorCallbacks(): List<Throwable> = errorCallbacks()
-    override fun errorCode(): Int = errorCode()
+    override fun errorCode(): Int = code
     override fun errorException(): Throwable? = exception
     override fun errorMessage(): String? = message
 
@@ -108,6 +104,10 @@ class ErrorInfo : ErrorReader {
         val ERR_WORKFLOW = -1000
         @JvmStatic
         val ERR_WORKFLOW_PROCESSOR = -1001
+
+
+        @JvmStatic
+        val ERR_UNKNOWN = -1
     }
 
 }

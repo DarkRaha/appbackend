@@ -451,7 +451,7 @@ open class HttpServiceDefault : HttpService {
                         } else {
                             sink.emit()
                             totalBytesRead += bytesRead
-                            srvHelper.dispatchProgress(totalBytesRead, contentLength)
+                            srvHelper.dispatchProgress(totalBytesRead.toFloat(), contentLength.toFloat())
                         }
                     }
                     sink.flush()

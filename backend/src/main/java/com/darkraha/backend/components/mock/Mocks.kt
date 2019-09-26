@@ -50,7 +50,7 @@ class MockService : Service {
 
         if (swh.isProgressListenerPossible()) {
             for (it in 0..progressCount) {
-                swh.dispatchProgress(it.toLong(), progressCount.toLong())
+                swh.dispatchProgress(it.toFloat(), progressCount.toFloat())
                 try {
                     Thread.sleep(timeoutProgress)
                 } catch (e: Exception) {

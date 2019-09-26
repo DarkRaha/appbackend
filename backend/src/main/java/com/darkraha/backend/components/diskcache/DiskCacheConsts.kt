@@ -2,6 +2,10 @@ package com.darkraha.backend.components.diskcache
 
 object DiskCacheConsts {
 
+    val DAY_MS = 1000L * 60 * 60 * 24
+
+    val MB_BYTES = 1024L * 1024
+
     /**
      * Command for putting file to disk cache.
      */

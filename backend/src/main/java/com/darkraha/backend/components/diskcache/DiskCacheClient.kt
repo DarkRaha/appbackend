@@ -32,7 +32,7 @@ interface DiskCacheClient : Client {
     /**
      * Cleans old data in disk cache asynchronously.
      */
-    fun clean(maxTime: Long, minTime: Long = maxTime, toSize: Long = 0, cb: Callback<UserQuery>? = null): UserQuery
+    fun clean(maxTime: Long, minTime: Long = maxTime, toSize: Long = 200 * DiskCacheConsts.MB_BYTES, cb: Callback<UserQuery>? = null): UserQuery
 
     fun clear(cb: Callback<UserQuery>? = null): UserQuery
 

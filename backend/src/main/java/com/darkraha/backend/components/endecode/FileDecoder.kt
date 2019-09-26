@@ -1,5 +1,6 @@
 package com.darkraha.backend.components.endecode
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import java.io.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -11,42 +12,61 @@ import kotlin.reflect.full.isSubclassOf
  * @author Verma Rahul
  */
 abstract class FileDecoder(
-        srcMimetype: String,
-        srcFileExtensions: Array<String>,
-        dstClass: KClass<*>,
-        extraParamClass: KClass<*>? = null
+        val srcMimetype: String,
+        val srcFileExtensions: Array<String>,
+        val dstClass: KClass<*>,
+        val extraParamClass: KClass<*>? = null
 ) {
 
-    val srcFileExtensions = srcFileExtensions
-    val srcMimetype = srcMimetype
-    val dstClass = dstClass
-    val extraParamClass = extraParamClass
+    val mimetypeMain = srcMimetype.substringBefore("/")
 
+    open fun isSupportDecode(srcValue: Any?, aSrcMimetype: String?, dst: Any?, aDstClass: KClass<*>?, extraParam: Any?): Boolean {
 
-    fun isSupportDecode(src: Any?, aSrcMimetype: String?, dst: Any?, aDstClass: KClass<*>?, extraParam: Any?): Boolean {
+        var ret = isSupportFile(srcValue) || isSupportMimetype(aSrcMimetype)
 
-//        println(
-//            " mimetype=" + (srcMimetype == aSrcMimetype) +
-//                    " file ext= " + (srcFileExtensions.size == 0 || src is File && src.extension.toLowerCase() in srcFileExtensions) +
-//                    " dst cls= " + (aDstClass?.isSubclassOf(dstClass) ?: true) +
-//                    "extraParam= " + (extraParam == null || extraParamClass?.isInstance(extraParam) ?: false)
-//        )
-//
-//
-//        println(" ext size = " + srcFileExtensions.size+ " ext "+(src as File).extension.toLowerCase())
-//        srcFileExtensions.forEach {
-//            print(" "+it)
-//        }
+        aDstClass?.apply {
+            ret = ret && this.isSubclassOf(dstClass)
+        }
 
-        return ((srcFileExtensions.size > 0 || src is File && src.extension.toLowerCase() in srcFileExtensions)
-                || srcMimetype == aSrcMimetype)
-                && (aDstClass?.isSubclassOf(dstClass) ?: true)
-                && (extraParam == null || extraParamClass?.isInstance(extraParam) ?: false)
+        extraParam?.apply {
+            ret = ret && extraParamClass?.isInstance(extraParam) ?: false
+        }
+
+        return ret
     }
 
-    fun isSupportFile(file: File): Boolean {
-        return if (srcFileExtensions.size == 0) true else file.extension.toLowerCase() in srcFileExtensions
+
+    fun isSupportMimetype(mimetype: String?): Boolean {
+        return srcMimetype == mimetype
     }
+
+    fun isPossibleMimetype(mimetype: String?): Boolean {
+        return mimetype?.startsWith(mimetypeMain) ?: false
+    }
+
+
+    fun isSupportFile(srcFile: Any?): Boolean {
+        srcFile?.apply {
+            if (this is File) {
+                return extension.toLowerCase() in srcFileExtensions
+            }
+        }
+
+        return false
+    }
+
+    fun isSupportExtraParam(ep: Any?): Boolean {
+        ep?.apply {
+            return extraParamClass?.isInstance(ep) ?: false
+        }
+
+        return return true
+    }
+
+
+//    fun isSupportFile(file: File): Boolean {
+//        return if (srcFileExtensions.size == 0) true else file.extension.toLowerCase() in srcFileExtensions
+//    }
 
     open fun decodeAny(src: Any?, dst: Any? = null, extraParam: Any? = null): Any? {
         var result: Any? = when {

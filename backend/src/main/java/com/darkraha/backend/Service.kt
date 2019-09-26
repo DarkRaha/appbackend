@@ -4,7 +4,7 @@ import com.darkraha.backend.infos.MetaInfo
 
 
 interface ServiceWorkflowHelper {
-    fun dispatchProgress(current: Long, total: Long)
+    fun dispatchProgress(current: Float, total: Float)
     fun getMetaInfo(): MetaInfo
 
     /**

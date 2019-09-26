@@ -32,7 +32,7 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     /**
      * For checking is image actual for this ui object.
      */
-    protected val uiUrlMap = WeakHashMap<Any?, String>()
+    protected val uiUrlMap = Collections.synchronizedMap(WeakHashMap<Any?, String>())
     /**
      *
      */
@@ -66,9 +66,7 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     //--------------------------------------------------------------------------------------
 
     open protected fun checkMemCache(q: UserQuery, response: ClientQueryEditor): Boolean {
-        val ui: Any? = q.uiParam()
-        if (ui != null) {
-
+        q.uiParam()?.let {
             val result = cache[q.getQueryId()!!]
 
             if (result != null) {
@@ -77,6 +75,7 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
             }
         }
 
+        println("ImageManagerClientA not in memImg = ${cache[q.getQueryId()!!]} url=${q.getQueryId()!!}")
         return false
     }
 
@@ -84,10 +83,12 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
     open protected fun checkCachesBeforeLoad(q: UserQuery, response: ClientQueryEditor): Boolean {
         if (!checkMemCache(q, response)) {
 
-            if (q.fileDestination()!!.exists()) {
-                produceDecodesQueries(q)
-                response.success(q.result(), ChainType.FIRST_ELEMENT)
-                return true
+            q.fileDestination()?.apply {
+                if (exists() && length() > 0) {
+                    produceDecodesQueries(q)
+                    response.success(q.result(), ChainType.FIRST_ELEMENT)
+                    return true
+                }
             }
 
             return false
@@ -137,9 +138,16 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
      */
     open protected fun assignImage(query: UserQuery) {
         val ui = query.uiParam()
-        val img = query.result()
         val url = query.url() ?: query.getQueryId()!!
         val urlExpected = uiUrlMap[ui]
+
+        //
+        var img = cache[url]
+
+        if (img == null) {
+            img = query.result()
+            cache[url] = img!!
+        }
 
         if (ui != null && (urlExpected == null || url == urlExpected)) {
             assignImage(img, ui, query.getExtraParamAs<ImageLoadEP>())
@@ -158,9 +166,9 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         imagePlatformHelper.assignImage(cvtImg, ui)
         uiUrlMap.remove(ui)
 
-        if (ep == null || (ep != null && ep.isAutoAnimate)) {
-            imagePlatformHelper.startAnimation(ui)
-        }
+//        if (ep == null || (ep != null && ep.isAutoAnimate)) {
+//            imagePlatformHelper.startAnimation(ui)
+//        }
 
         return true
     }
@@ -216,21 +224,22 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
             ep: ImageLoadEP?,
             progressListener: ProgressListener?
     ): QueryBuilder<WorkflowBuilder1> {
-        val builder = httpClient.prepareDefaultQuery()
-                .queryId(url)
-                .url(url)
-                .uiParam(ui)
-                .destination(diskCacheClient.genFile(url))
-                .extraParam(ep)
-                .addCallback(cb)
-                .progressListener(progressListener)
-                .allowAppend(true)
-                .callbackFirst(callbackLoad)
-                .resSync(url)
-                .addPrepareProcessor(::onPrepareLoad)
-                .addPostProcessor(::onPostLoad)
-                .addPreProcessor(::onPreLoad)
-                .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
+        val builder =
+                prepareQueryFrom(httpClient.prepareDefaultQuery())
+                        .queryId(url)
+                        .url(url)
+                        .uiParam(ui)
+                        .destination(diskCacheClient.genFile(url))
+                        .extraParam(ep)
+                        .addCallback(cb)
+                        .progressListener(progressListener)
+                        .allowAppend(true)
+                        .callbackFirst(callbackLoad)
+                        .resSync(url)
+                        .addPrepareProcessor(::onPrepareLoad)
+                        .addPostProcessor(::onPostLoad)
+                        .addPreProcessor(::onPreLoad)
+                        .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
 
 
         return builder
@@ -245,13 +254,8 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
             progressListener: ProgressListener?
     ): WorkflowBuilder<WorkflowBuilder1> {
         val _url = url ?: file.toURI().toString()
-        val ext = file.extension
-        val mimetype = if(ext==""){
-            "image/jpeg"
-        }else{
-            null
-        }
-        return endecoder.prepareDecode(file, mimetype, null, ep, cb)
+
+        return prepareQueryFrom(endecoder.prepareDecode(file, "image/*", null, ep, cb))
                 .queryId(_url)
                 .uiParam(ui)
                 .allowAppend(false)

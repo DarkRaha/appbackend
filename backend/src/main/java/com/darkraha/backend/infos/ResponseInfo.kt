@@ -108,6 +108,8 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
         result = src.result
     }
 
+
+
     fun clear() {
         errorInfo.clear()
         cancelInfo.clear()

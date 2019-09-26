@@ -6,6 +6,7 @@ import android.widget.ProgressBar
 import com.darkraha.backend.Backend
 import com.darkraha.backend.ProgressListener
 import java.lang.ref.SoftReference
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Changes progress bar progress while query handling.
@@ -16,7 +17,7 @@ import java.lang.ref.SoftReference
  */
 
 class UIProgressListener(progressBar: ProgressBar, val percentDelta: Float = 1f) :
-    ProgressListener {
+        ProgressListener {
 
 
     /**
@@ -26,6 +27,19 @@ class UIProgressListener(progressBar: ProgressBar, val percentDelta: Float = 1f)
         this.removeFromParentAtEnd = removeFromParentAtEnd
     }
 
+
+    private val _isActive = AtomicBoolean(true)
+    var isUsed = false
+
+    var isActive: Boolean
+        set(value) {
+            _isActive.set(value)
+             refProgressBar.get()?.apply {
+                visibility = if (value && isUsed) View.VISIBLE else View.GONE
+            }
+        }
+        get() = _isActive.get()
+
     internal var percent = 0f
     internal var prev = 0f
 
@@ -33,9 +47,13 @@ class UIProgressListener(progressBar: ProgressBar, val percentDelta: Float = 1f)
     private var refProgressBar = SoftReference<ProgressBar>(progressBar)
     private var removeFromParentAtEnd = false
 
-    override fun onProgress(current: Long, total: Long) {
+    override fun onProgress(current: Float, total: Float) {
 
-        if (refProgressBar.get() != null) {
+        if (!_isActive.get()) {
+            return
+        }
+
+        refProgressBar.get()?.also {
 
             if (percent == 0f) {
                 percent = total / 100f
@@ -45,18 +63,19 @@ class UIProgressListener(progressBar: ProgressBar, val percentDelta: Float = 1f)
                 mainThread.execute {
                     refProgressBar.get()?.progress = (100 * current / total).toInt()
                 }
+                prev = current
             }
         }
     }
 
     override fun onStart() {
-
         if (refProgressBar.get() != null) {
             mainThread.execute {
-                val pb = refProgressBar.get()
-                if (pb != null) {
-                    pb.visibility = View.VISIBLE
-                    pb.progress = 0
+                isUsed = true
+                isActive = true
+
+                refProgressBar.get()?.apply {
+                    progress = 0
                 }
             }
         }
@@ -64,17 +83,15 @@ class UIProgressListener(progressBar: ProgressBar, val percentDelta: Float = 1f)
 
     override fun onEnd() {
 
-        if (refProgressBar.get() != null) {
-
+        refProgressBar.get()?.also {
             mainThread.execute {
 
-                val pb = refProgressBar.get()
-
-                if (pb != null) {
-                    pb.visibility = View.GONE
+                refProgressBar.get()?.apply {
+                    isUsed = false
+                    isActive = false
 
                     if (removeFromParentAtEnd) {
-                        (pb.getParent() as ViewGroup).removeView(pb)
+                        (getParent() as ViewGroup).removeView(this)
                     }
                 }
             }

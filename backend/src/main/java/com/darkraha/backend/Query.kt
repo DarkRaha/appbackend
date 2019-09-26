@@ -4,6 +4,7 @@ import com.darkraha.backend.client.ClientBase
 import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.infos.*
 import java.io.File
+import java.lang.StringBuilder
 import java.lang.ref.WeakReference
 import java.util.concurrent.ExecutorService
 import kotlin.reflect.KClass
@@ -17,20 +18,20 @@ import kotlin.reflect.KClass
  *@author Verma Rahul
  */
 class Query(
-        val params: ParamInfo = ParamInfo(),
-        val meta: MetaInfo = MetaInfo(),
-        val workflow: WorkflowManager = WorkflowManager()
+    val params: ParamInfo = ParamInfo(),
+    val meta: MetaInfo = MetaInfo(),
+    val workflow: WorkflowManager = WorkflowManager()
 ) :
-        WorkflowBuilder1,
-        UserQuery,
-        ClientQueryEditor by workflow,
-        ServiceWorkflowHelper,
-        ParamReader by params,
-        MetaInfoReader by meta,
-        WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
-        WorkflowExecutor by workflow,
-        ResultReader by workflow.response, ResultOptionsReader by workflow.response,
-        ErrorReader by workflow.response.errorInfo {
+    WorkflowBuilder1,
+    UserQuery,
+    ClientQueryEditor by workflow,
+    ServiceWorkflowHelper,
+    ParamReader by params,
+    MetaInfoReader by meta,
+    WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
+    WorkflowExecutor by workflow,
+    ResultReader by workflow.response, ResultOptionsReader by workflow.response,
+    ErrorReader by workflow.response.errorInfo {
 
 
     internal var _command: String? = null
@@ -50,7 +51,8 @@ class Query(
         workflow.owner = this
     }
 
-    override fun dispatchProgress(current: Long, total: Long) {
+
+    override fun dispatchProgress(current: Float, total: Float) {
         this.workflow.dispatchProgress(current, total)
     }
 
@@ -94,109 +96,78 @@ class Query(
         return this
     }
 
-    override fun addOrSetFrom(q: Query): WorkflowBuilder1 {
-
-        this.workflow.addOrSetFrom(q.workflow)
+    override fun addOrSetFrom(q: Query): WorkflowBuilder1 = apply {
+        workflow.addOrSetFrom(q.workflow)
         params.addOrSetFrom(q.params)
         meta.addOrSetFrom(q.meta)
         _command = q._command
         _queryId = q._queryId
-        return this
     }
 
-    override fun executor(v: ExecutorService): WorkflowBuilder1 {
-        this.workflow.executor = v
-        return this
+    override fun executor(v: ExecutorService): WorkflowBuilder1 = apply {
+        workflow.executor = v
     }
 
-    override fun service(v: Service): WorkflowBuilder1 {
-        this.workflow.service = v
-        return this
+    override fun service(v: Service): WorkflowBuilder1 = apply {
+        workflow.service = v
     }
 
-    override fun callbackFirst(cb: Callback<UserQuery>): WorkflowBuilder1 {
-        this.workflow.callbakFirst = cb
-        return this
+    override fun callbackFirst(cb: Callback<UserQuery>): WorkflowBuilder1 = apply {
+        workflow.callbakFirst = cb
     }
 
-    override fun callbackLast(cb: Callback<UserQuery>): WorkflowBuilder1 {
-        this.workflow.callbackLast = cb
-        return this
+    override fun callbackLast(cb: Callback<UserQuery>): WorkflowBuilder1 = apply {
+        workflow.callbackLast = cb
     }
 
-    override fun mainThread(m: MainThread): WorkflowBuilder1 {
-        this.workflow.mainThread = m
-        return this
+    override fun mainThread(m: MainThread): WorkflowBuilder1 = apply {
+        workflow.mainThread = m
     }
 
-    override fun client(v: ClientBase): WorkflowBuilder1 {
-        this.workflow.client = v
-        return this
+    override fun client(v: ClientBase): WorkflowBuilder1 = apply {
+        workflow.client = v
     }
 
-    override fun addPrepareProcessor(p: Processor): WorkflowBuilder1 {
-        synchronized(this.workflow.prepareProcessor) {
-            this.workflow.prepareProcessor.add(p)
+    override fun addPrepareProcessor(p: Processor): WorkflowBuilder1 = apply {
+        synchronized(workflow.prepareProcessor) {
+            workflow.prepareProcessor.add(p)
         }
-        return this
     }
 
-    override fun addPreProcessor(p: Processor): WorkflowBuilder1 {
-        synchronized(this.workflow.preProcessor) {
-            this.workflow.preProcessor.add(p)
+    override fun addPreProcessor(p: Processor): WorkflowBuilder1 = apply {
+        synchronized(workflow.preProcessor) {
+            workflow.preProcessor.add(p)
         }
-        return this
     }
 
-    override fun addPostProcessor(p: Processor): WorkflowBuilder1 {
-        synchronized(this.workflow.postProcessor) {
-            this.workflow.postProcessor.add(p)
+    override fun addPostProcessor(p: Processor): WorkflowBuilder1 = apply {
+        synchronized(workflow.postProcessor) {
+            workflow.postProcessor.add(p)
         }
-        return this
     }
 
     //-----------------------------------------------------------------------------------------
     // Query meta builder methods
-    override fun method(v: String): WorkflowBuilder1 {
-        meta.method = v
-        return this
-    }
+    override fun method(v: String): WorkflowBuilder1 = apply { meta.method = v }
 
-    override fun head(): WorkflowBuilder1 {
-        meta.methodHead()
-        return this
-    }
+    override fun head(): WorkflowBuilder1 = apply { meta.methodHead() }
 
-    override fun put(): WorkflowBuilder1 {
-        meta.methodPut()
-        return this
-    }
+    override fun put(): WorkflowBuilder1 = apply { meta.methodPut() }
 
-    override fun get(): WorkflowBuilder1 {
-        meta.methodGet()
-        return this
-    }
+    override fun get(): WorkflowBuilder1 = apply { meta.methodGet() }
 
-    override fun post(): WorkflowBuilder1 {
-        meta.methodPost()
-        return this
-    }
+    override fun post(): WorkflowBuilder1 = apply { meta.methodPost() }
 
-    override fun delete(): WorkflowBuilder1 {
-        meta.methodDelete()
-        return this
-    }
+    override fun delete(): WorkflowBuilder1 = apply { meta.methodDelete() }
 
 
     //-----------------------------------------------------------------------------------------
     // Query builder
 
-    override fun getBuilder(): WorkflowBuilder1 {
-        return this
-    }
+    override fun getBuilder(): WorkflowBuilder1 = this
 
 
-    override fun addHeader(name: String, v: String): WorkflowBuilder1 {
+    override fun addHeader(name: String, v: String): WorkflowBuilder1 = apply {
         var hval = meta.inHeaders[name]
 
         if (hval == null) {
@@ -205,204 +176,152 @@ class Query(
         } else {
             hval.add(v)
         }
-
-        return this
     }
 
-    override fun addCookie(name: String, v: String): WorkflowBuilder1 {
-        meta.inCookies[name] = v
-        return this
-    }
+    override fun addCookie(name: String, v: String): WorkflowBuilder1 =
+        apply { meta.inCookies[name] = v }
 
-    override fun optSaveOutHeaders(): WorkflowBuilder1 {
-        meta.saveHeaders()
-        return this
-    }
+    override fun optSaveOutHeaders(): WorkflowBuilder1 = apply { meta.saveHeaders() }
 
-    override fun optSaveOutCookies(): WorkflowBuilder1 {
-        meta.saveCookies()
-        return this
-    }
+    override fun optSaveOutCookies(): WorkflowBuilder1 = apply { meta.saveCookies() }
 
-    override fun url(v: String): WorkflowBuilder1 {
-        params.urlBuilder.url = v
-        return this
-    }
+    override fun url(v: String): WorkflowBuilder1 = apply { params.urlBuilder.url = v }
 
-    override fun urlBase(v: String): WorkflowBuilder1 {
-        params.urlBuilder.base = v
-        return this
-    }
+    override fun urlBase(v: String): WorkflowBuilder1 = apply { params.urlBuilder.base = v }
 
-    override fun addUrlPath(v: String): WorkflowBuilder1 {
+    override fun addUrlPath(v: String): WorkflowBuilder1 = apply {
         params.urlBuilder.addpathes.add(v)
-        return this
     }
 
-    override fun addUrlReplace(key: String, v: String): WorkflowBuilder1 {
+    override fun addUrlReplace(key: String, v: String): WorkflowBuilder1 = apply {
         params.urlBuilder.addReplacement(key, v)
-        return this
     }
 
-    override fun extraParam(extraParam: Any?): WorkflowBuilder1 {
+    override fun extraParam(extraParam: Any?): WorkflowBuilder1 = apply {
         params.extraParam = extraParam
-        return this
     }
 
-    override fun objectParam(v: Any?): WorkflowBuilder1 {
+    override fun objectParam(v: Any?): WorkflowBuilder1 = apply {
         params.objectParam = v
-        return this
     }
 
-    override fun weakObjectParam(v: Any?): WorkflowBuilder1 {
-
+    override fun weakObjectParam(v: Any?): WorkflowBuilder1 = apply {
         params.objectParam = if (v != null) {
             WeakReference<Any>(v)
         } else null
-
-        return this
     }
 
-    override fun uiParam(v: Any?): WorkflowBuilder1 {
-        params.uiObject = v
-        return this
-    }
+    override fun uiParam(v: Any?): WorkflowBuilder1 = apply { params.uiObject = v }
 
-    override fun weakUiParam(v: Any?): WorkflowBuilder1 {
+    override fun weakUiParam(v: Any?): WorkflowBuilder1 = apply {
         params.uiObject = if (v != null) {
             WeakReference<Any>(v)
         } else null
-
-        return this
     }
 
-    override fun source(v: Any?, mimetype: String?, autoclose: Boolean): WorkflowBuilder1 {
-        params.source.value = v
-        params.source.mimetype = mimetype
-        params.autoCloseSource()
-        return this
+    override fun source(v: Any?, mimetype: String?, autoclose: Boolean): WorkflowBuilder1 = apply {
+        params.run {
+            source.value = v
+            source.mimetype = mimetype
+            autoCloseSource()
+        }
     }
 
-    override fun sourceClass(cls: KClass<*>?, clsItem: KClass<*>?): WorkflowBuilder1 {
-        params.source.cls = cls
-        params.source.clsItem = clsItem
-        return this
-    }
+    override fun sourceClass(clsSource: KClass<*>?, clsSourceItem: KClass<*>?): WorkflowBuilder1 =
+        apply {
+            params.source.run {
+                cls = clsSource
+                clsItem = clsSourceItem
+            }
+        }
 
-    override fun destination(v: Any?, mimetype: String?, autoclose: Boolean): WorkflowBuilder1 {
-        params.destination.value = v
-        params.destination.mimetype = mimetype
-        params.autoCloseDestination()
-        return this
-    }
+    override fun destination(v: Any?, mimetype: String?, autoclose: Boolean): WorkflowBuilder1 =
+        apply {
+            params.run {
+                destination.value = v
+                destination.mimetype = mimetype
+                autoCloseDestination()
+            }
+        }
 
-    override fun destinationClass(cls: KClass<*>?, clsItem: KClass<*>?): WorkflowBuilder1 {
+    override fun destinationClass(cls: KClass<*>?, clsItem: KClass<*>?): WorkflowBuilder1 = apply {
         params.destination.cls = cls
         params.destination.clsItem = clsItem
-        return this
     }
 
-    override fun addParam(v: Any?): WorkflowBuilder1 {
+    override fun addParam(v: Any?): WorkflowBuilder1 = apply {
         if (v != null) {
             params.param.add(v)
         }
-        return this
     }
 
-    override fun addNamedParam(key: String, v: String?): WorkflowBuilder1 {
+    override fun addNamedParam(key: String, v: String?): WorkflowBuilder1 = apply {
         if (v != null) {
             params.namedParams[key] = v
         }
-        return this
     }
 
-    override fun addNamedParamsAll(nparams: Map<String, String>?): WorkflowBuilder1 {
+    override fun addNamedParamsAll(nparams: Map<String, String>?): WorkflowBuilder1 = apply {
         if (nparams != null) {
             params.namedParams.putAll(nparams)
         }
-
-        return this
     }
 
-    override fun addNamedSpecialParam(key: Any, v: Any?): WorkflowBuilder1 {
+    override fun addNamedSpecialParam(key: Any, v: Any?): WorkflowBuilder1 = apply {
         if (v != null) {
             params.namedSpecialParams[key] = v
         }
-        return this
     }
 
-    override fun optAsString(): WorkflowBuilder1 {
-        this.workflow.response.setOptionSaveString()
-        return this
+    override fun optAsString(): WorkflowBuilder1 = apply {
+        workflow.response.setOptionSaveString()
     }
 
-    override fun optAsBytes(): WorkflowBuilder1 {
-        this.workflow.response.setOptionSaveBytes()
-        return this
+    override fun optAsBytes(): WorkflowBuilder1 = apply {
+        workflow.response.setOptionSaveBytes()
     }
 
-    override fun optAsFile(): WorkflowBuilder1 {
-        this.workflow.response.setOptionSaveFile()
-        return this
+    override fun optAsFile(): WorkflowBuilder1 = apply {
+        workflow.response.setOptionSaveFile()
     }
 
-    override fun addCallback(cb: Callback<UserQuery>?): WorkflowBuilder1 {
-        if (cb != null) {
-            this.workflow.callbacks.add(cb)
+    override fun addCallback(cb: Callback<UserQuery>?): WorkflowBuilder1 = apply {
+        cb?.also { workflow.callbacks.add(it) }
+    }
+
+    override fun addWorkflowListener(wl: WorkflowListener): WorkflowBuilder1 = apply {
+        synchronized(workflow.workflowListener) {
+            workflow.workflowListener.add(wl)
         }
-        return this
     }
 
-    override fun addWorkflowListener(wl: WorkflowListener): WorkflowBuilder1 {
-        synchronized(this.workflow.workflowListener) {
-            this.workflow.workflowListener.add(wl)
-        }
-        return this
-    }
-
-    override fun resSync(v: Any): WorkflowBuilder1 {
-        this.workflow.syncResource = v
-        return this
+    override fun resSync(v: Any): WorkflowBuilder1 = apply {
+        workflow.syncResource = v
     }
 
 
-    override fun progressListener(pl: ProgressListener?): WorkflowBuilder1 {
-        this.workflow.progressListener = pl
-        return this
+    override fun progressListener(pl: ProgressListener?): WorkflowBuilder1 = apply {
+        workflow.progressListener = pl
     }
 
 
-    override fun progressListener(block: (current: Long, total: Long) -> Unit): WorkflowBuilder1 {
-        this.workflow.progressListener = object : ProgressListener {
-            override fun onProgress(current: Long, total: Long) {
-                block(current, total)
+    override fun progressListener(block: (current: Float, total: Float) -> Unit): WorkflowBuilder1 =
+        apply {
+            workflow.progressListener = object : ProgressListener {
+                override fun onProgress(current: Float, total: Float) {
+                    block(current, total)
+                }
             }
         }
-        return this
-    }
 
-    override fun command(cmd: String?): WorkflowBuilder1 {
-        _command = cmd
-        return this
-    }
+    override fun command(cmd: String?): WorkflowBuilder1 = apply { _command = cmd }
 
-    override fun queryId(qId: String?): WorkflowBuilder1 {
-        _queryId = qId
-        return this
-    }
+    override fun queryId(qId: String?): WorkflowBuilder1 = apply { _queryId = qId }
 
 
-    override fun comment(c: String?): WorkflowBuilder1 {
-        params.comment = c
-        return this
-    }
+    override fun comment(c: String?): WorkflowBuilder1 = apply { params.comment = c }
 
-
-    override fun allowAppend(v: Boolean): WorkflowBuilder1 {
-        this.workflow.setAllowAppend(true)
-        return this
-    }
-
+    override fun allowAppend(v: Boolean): WorkflowBuilder1 = apply { workflow.setAllowAppend(true) }
 
     //  fun asQueryBuilder() = this as QueryBuilder<T:>
     fun asQueryReader() = this as UserQuery
@@ -417,6 +336,42 @@ class Query(
         meta.clear()
     }
 
+    //----------------------------------------------------------------
+
+    override fun toString(): String {
+        val sb = StringBuilder()
+
+        sb.append("Query {")
+
+        sb.append(" isSync=${workflow.isRunSync()} ")
+
+
+        if (isError()) {
+            sb.append("isError=${isError()} ").append(workflow.response.errorInfo).append("\n")
+        }
+
+        if (isCanceled()) {
+            sb.append(workflow.response.cancelInfo).append("\n")
+        }
+
+        getCommand()?.also {
+            sb.append("cmd = ").append(it)
+        }
+
+
+        getQueryId()?.also {
+            sb.append(" queryId = ").append(it).append("\n")
+        }
+
+        url()?.also {
+            sb.append("url = '").append(it).append("'\n")
+        }
+
+
+        sb.append("}")
+
+        return sb.toString()
+    }
 
 }
 

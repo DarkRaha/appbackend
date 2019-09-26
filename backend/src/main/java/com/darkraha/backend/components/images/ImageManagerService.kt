@@ -15,8 +15,8 @@ interface ImagePlatformHelper {
      */
     fun onAttach(imageManager: ImageManagerClient)
     fun assignImage(img: Any?, ui: Any)
-    fun startAnimation(ui: Any?)
-    fun stopAnimation(ui: Any?)
+//    fun startAnimation(ui: Any?)
+//    fun stopAnimation(ui: Any?)
 }
 
 
@@ -27,10 +27,10 @@ class ImagePlatformHelperEmpty() : ImagePlatformHelper {
     override fun assignImage(img: Any?, ui: Any) {
     }
 
-    override fun startAnimation(ui: Any?) {
-    }
-
-    override fun stopAnimation(ui: Any?) {
-    }
+//    override fun startAnimation(ui: Any?) {
+//    }
+//
+//    override fun stopAnimation(ui: Any?) {
+//    }
 
 }

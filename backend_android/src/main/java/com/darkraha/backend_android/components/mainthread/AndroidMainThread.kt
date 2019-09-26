@@ -5,17 +5,17 @@ import android.os.Looper
 import com.darkraha.backend.components.mainthread.MainThread
 
 class AndroidMainThread : MainThread() {
-    val handler = Handler()
+    val handler = Handler(Looper.getMainLooper())
 
     override fun isMainThread(): Boolean {
-        return Looper.myLooper() == Looper.getMainLooper()
+        return Looper.getMainLooper().getThread().equals(Thread.currentThread())
     }
 
     override fun execute(block: () -> Unit) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
+        if (isMainThread()) {
             block()
         } else {
-            handler.post(block)
+            handler.post { block() }
         }
     }
 

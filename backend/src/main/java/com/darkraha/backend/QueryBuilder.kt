@@ -245,7 +245,7 @@ interface QueryBuilder<Self>
     fun resSync(v: Any): Self
 
     fun progressListener(pl: ProgressListener?): Self
-    fun progressListener(block: (current: Long, total: Long) -> Unit): Self
+    fun progressListener(block: (current: Float, total: Float) -> Unit): Self
 
     /**
      * Is allow append user data to this query. As example while loading image for show in ImageView one,
@@ -301,6 +301,10 @@ fun <T : QueryBuilder<T>> QueryBuilder<T>.addWorkflowListener(wlBlock: (query: U
     })
 }
 
+fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addWorkflowListenerAll(p: List<WorkflowListener>): T {
+    p.forEach { addWorkflowListener(it) }
+    return getBuilder()
+}
 
 fun <T : WorkflowBuilder<T>> WorkflowBuilder<T>.addPrepareProcessor(p: (q: UserQuery, r: ClientQueryEditor) -> Unit): T {
     return addPrepareProcessor(object : Processor {

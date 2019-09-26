@@ -165,7 +165,7 @@ class WorkflowTest {
         val query = queryManager.newQuery()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
-        var progress = 0L
+        var progress = 0f
         mockService.result = ok
 
         query.service(mockService)
@@ -179,7 +179,7 @@ class WorkflowTest {
         query.exeAsync().waitFinish()
 
         assertTrue(query.result() == "Ok")
-        assertTrue(progress == 9L)
+        assertTrue(progress == 9f)
         executor.shutdown()
     }
 
