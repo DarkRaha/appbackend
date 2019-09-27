@@ -8,9 +8,9 @@ open class GifImageDecoder : BinaryFileDecoder("image/gif", arrayOf("gif"), GifD
 
     override fun onDecoding(inStream: InputStream, dst: Any?, extraParam: Any?): Any? {
         val ret = GifDecoder(super.onDecoding(inStream, dst, extraParam) as ByteArray)
-        if (ret.getStatus() != GifDecoder.STATUS_OK) {
-            throw IllegalStateException("Error on decode gif file status =${ret.getStatus()}")
-        }
+//        if (ret.getStatus() != GifDecoder.STATUS_OK) {
+//            throw IllegalStateException("Error on decode gif file status =${ret.getStatus()}")
+//        }
         ret.nextFrame
         ret.advance()
 

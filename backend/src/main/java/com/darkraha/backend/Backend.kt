@@ -17,6 +17,7 @@ import com.darkraha.backend.components.qmanager.QueryManager
 import com.darkraha.backend.components.qmanager.QueryManagerDefault
 import com.darkraha.backend.components.restclient.JsonRestClientBase
 import com.darkraha.backend.helpers.ErrorFilterManager
+import com.darkraha.backend.helpers.ObjectPool
 import com.darkraha.backend.livedata.UIEventT
 
 import java.io.File
@@ -68,6 +69,9 @@ open class Backend private constructor() {
 
     lateinit var errorFilter: ErrorFilterManager
         protected set
+
+
+    val queryPool = ObjectPool { Query() }
 
     /**
      *

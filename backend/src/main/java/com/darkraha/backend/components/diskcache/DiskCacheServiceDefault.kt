@@ -7,6 +7,7 @@ import com.darkraha.backend.ServiceWorkflowHelper
 import com.darkraha.backend.cache.LRUCache
 import com.darkraha.backend.extensions.encodeMd5
 import com.darkraha.backend.extensions.extractFileExtension
+import com.darkraha.backend.extensions.getWithDefault
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
@@ -79,10 +80,10 @@ open class DiskCacheServiceDefault(wd: File = File("diskcache")) : DiskCacheServ
         val specParams = q.specialParams()
 
         response.setResult(
-            getFile(
-                specParams.get(Param.PARAM_KEY_URL) as String,
-                specParams.getOrDefault(Param.PARAM_SUFFIX, "") as String
-            )
+                getFile(
+                        specParams.get(Param.PARAM_KEY_URL) as String,
+                        specParams.getWithDefault(Param.PARAM_SUFFIX, "") as String
+                )
         )
     }
 
@@ -100,8 +101,8 @@ open class DiskCacheServiceDefault(wd: File = File("diskcache")) : DiskCacheServ
         }
 
         putFileMod(
-            key, specParams.getOrDefault(Param.PARAM_SUFFIX, "") as String,
-            file
+                key, specParams.getWithDefault(Param.PARAM_SUFFIX, "") as String,
+                file
         )
     }
 
@@ -118,7 +119,7 @@ open class DiskCacheServiceDefault(wd: File = File("diskcache")) : DiskCacheServ
             throw IllegalArgumentException("Key is null")
         }
 
-        response.setResult(genFilename(key, specParams.getOrDefault(Param.PARAM_SUFFIX, "") as String))
+        response.setResult(genFilename(key, specParams.getWithDefault(Param.PARAM_SUFFIX, "") as String))
     }
 
     fun handleGenFile(q: UserQuery, swh: ServiceWorkflowHelper, response: ClientQueryEditor) {
@@ -134,14 +135,14 @@ open class DiskCacheServiceDefault(wd: File = File("diskcache")) : DiskCacheServ
             throw IllegalArgumentException("Key is null")
         }
 
-        response.setResult(genFile(key, specParams.getOrDefault(Param.PARAM_SUFFIX, "") as String))
+        response.setResult(genFile(key, specParams.getWithDefault(Param.PARAM_SUFFIX, "") as String))
     }
 
     fun handleCleanup(q: UserQuery, swh: ServiceWorkflowHelper, response: ClientQueryEditor) {
         val specParams = q.specialParams()
-        val paramToSize = specParams.getOrDefault(Param.PARAM_TO_SIZE, 0L) as Long
-        val paramTimeMin = specParams.getOrDefault(Param.PARAM_OLD_TIME_MIN, 0L) as Long
-        val paramTimeMax = specParams.getOrDefault(Param.PARAM_OLD_TIME_MAX, 0L) as Long
+        val paramToSize = specParams.getWithDefault(Param.PARAM_TO_SIZE, 0L) as Long
+        val paramTimeMin = specParams.getWithDefault(Param.PARAM_OLD_TIME_MIN, 0L) as Long
+        val paramTimeMax = specParams.getWithDefault(Param.PARAM_OLD_TIME_MAX, 0L) as Long
         cleanup(paramToSize, paramTimeMin, paramTimeMax)
     }
 

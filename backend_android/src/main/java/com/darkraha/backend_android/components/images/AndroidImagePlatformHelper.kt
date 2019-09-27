@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
+import com.darkraha.backend.components.images.BackendImage
 import com.darkraha.backend.components.images.ImageManagerClient
 import com.darkraha.backend.components.images.ImagePlatformHelper
 import com.darkraha.backend_android.components.endecode.GifDecoder
@@ -11,37 +12,52 @@ import com.darkraha.backend_android.components.endecode.GifImageDecoder
 import com.darkraha.backend_android.components.endecode.JpegImageDecoder
 import com.darkraha.backend_android.components.endecode.PngImageDecoder
 import com.darkraha.backend_android.components.images.gif.GifDrawable
+
 // todo replace by BackendImage
-open class AndroidImagePlatformHelper : ImagePlatformHelper {
+open class AndroidImagePlatformHelper : ImagePlatformHelper() {
+    protected lateinit var imageManager: ImageManagerClient
+
+    protected var backendImages = mutableListOf(
+            BackendImageJpg(JpegImageDecoder(), null),
+            BackendImagePng(PngImageDecoder(), null),
+            BackendImageGif(GifImageDecoder(), null)
+    )
+
     override fun onAttach(imageManager: ImageManagerClient) {
-        imageManager.addImageDecoder(JpegImageDecoder())
-        imageManager.addImageDecoder(PngImageDecoder())
-        imageManager.addImageDecoder(GifImageDecoder())
 
-        imageManager.addImageSizeCalculator(Bitmap::class) {
-            val bmp = it as Bitmap
-            return@addImageSizeCalculator bmp.byteCount
-        }
+        this.imageManager = imageManager
 
-        imageManager.addImageSizeCalculator(GifDecoder::class) {
-            val gifDecoder = it as GifDecoder
-            return@addImageSizeCalculator 2 * gifDecoder.height * gifDecoder.width
-        }
-
-        imageManager.addImageConverter(GifDecoder::class) {
-            return@addImageConverter GifDrawable(it as GifDecoder)
+        backendImages.forEach {
+            addBackendImage(it)
         }
     }
 
-    override fun assignImage(img: Any?, ui: Any) {
-        if (ui is ImageView) {
-            when {
-                img is Drawable -> {
-                    ui.setImageDrawable(img)
-                }
-                img is Bitmap -> ui.setImageBitmap(img)
-            }
 
+    override fun getBackendImage(forObj: Any?): BackendImage? = forObj?.run {
+        backendImages.find { it.srcImageClass == this.javaClass }?.newInstance(forObj)
+    }
+
+    protected fun addBackendImage(bImage: BackendImage) {
+        imageManager.run {
+            addImageSizeCalculator(bImage.srcImageClass.kotlin, bImage::getMemoryUsageOf)
+            addImageConverter(bImage.srcImageClass.kotlin, bImage::convertImage)
+            bImage.fileDecoder?.apply { addImageDecoder(this) }
+            bImage.fileEncoder?.apply { addImageEncoder(this) }
         }
+    }
+
+
+    override fun assignImage(img: Any?, ui: Any) {
+       getBackendImage(img)?.assignTo(ui)
+//
+//        if (ui is ImageView) {
+//            when {
+//                img is Drawable -> {
+//                    ui.setImageDrawable(img)
+//                }
+//                img is Bitmap -> ui.setImageBitmap(img)
+//            }
+//
+//        }
     }
 }

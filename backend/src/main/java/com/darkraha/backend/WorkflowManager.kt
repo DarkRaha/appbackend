@@ -446,9 +446,9 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         if (!isUsed() || (isReadyForFree() && externalUsers <= 0)) {
             dispatchWorkflowListeners(WORKFLOW_ON_FREE)
             client?.onQueryFree(owner)
-            queryManager?.backQuery(owner)
-            state.clear()
-            owner.clear()
+//            queryManager?.backQuery(owner)
+//            state.clear()
+//            owner.clear()
         }
 
         lock.unlock()

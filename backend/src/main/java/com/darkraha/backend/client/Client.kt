@@ -57,7 +57,7 @@ interface Client {
     /**
      * For complex clients.
      */
-    fun prepareQueryFrom(srcQuery: Query): Query
+    fun prepareQueryFrom(srcQuery: Query?): Query
 
 
     fun buildQuery(): QueryBuilder<WorkflowBuilder1>

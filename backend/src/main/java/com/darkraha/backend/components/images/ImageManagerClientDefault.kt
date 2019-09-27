@@ -107,6 +107,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
             val img = q.result()!!
             if (cache[it] == null) {
                 cache[it] = img
+                cache.cleanup()
             }
         }
     }

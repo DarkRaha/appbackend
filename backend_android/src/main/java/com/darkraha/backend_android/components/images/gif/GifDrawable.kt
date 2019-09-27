@@ -24,6 +24,8 @@ class GifDrawable(gifDecoder: GifDecoder) : Drawable(), Animatable, Runnable {
     var alwaysAnimate: Boolean = false
     protected var mRunning: Boolean = false
     protected var mLastTime: Long = 0
+
+
     val mPaint = Paint()
     protected var mMatrix = Matrix()
     var gifDecoder: GifDecoder
@@ -46,7 +48,7 @@ class GifDrawable(gifDecoder: GifDecoder) : Drawable(), Animatable, Runnable {
         this.gifDecoder = gifDecoder
         mPaint.isAntiAlias = true
         mCountFrames = gifDecoder.frameCount
-        curBitmap = gifDecoder.nextFrame
+        curBitmap = gifDecoder.currentFrame
     }
 
     protected fun setFirstFrame() {

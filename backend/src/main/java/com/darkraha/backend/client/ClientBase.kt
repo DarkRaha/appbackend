@@ -135,7 +135,7 @@ open class ClientBase : Client, QueryLifeListener {
 
 
     override fun prepareQuery(otherClient: Client?): Query {
-        val q = otherClient?.prepareDefaultQuery() ?: queryManager.newQuery()
+        val q = otherClient?.prepareDefaultQuery() ?: backend?.queryPool?.getObject() ?: Query()
         if (otherClient == null) {
             q.addOrSetFrom(common)
         } else {
@@ -151,17 +151,17 @@ open class ClientBase : Client, QueryLifeListener {
     }
 
 
-    override fun prepareQueryFrom(srcQuery: Query): Query {
-       return srcQuery.also {
+    override fun prepareQueryFrom(srcQuery: Query?): Query {
+        return srcQuery?.also {
             it.workflow.workflowListener.clear()
             it.client(this)
                     .addPostProcessorAll(common.workflow.postProcessor)
                     .addPrepareProcessorAll(common.workflow.prepareProcessor)
                     .addPreProcessorAll(common.workflow.preProcessor)
                     .addWorkflowListenerAll(common.workflow.workflowListener)
-        }
+        } ?: backend?.queryPool?.getObject()?.also { it.addOrSetFrom(common) }
+        ?: Query().apply { addOrSetFrom(common) }
     }
-
 
 
     override fun buildQuery(): QueryBuilder<WorkflowBuilder1> {
@@ -221,7 +221,7 @@ open class ClientBase : Client, QueryLifeListener {
     }
 
     override fun onQueryFree(q: Query) {
-
+        backend?.queryPool?.backObject(q)
     }
 
 

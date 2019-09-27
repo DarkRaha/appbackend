@@ -9,24 +9,25 @@ import kotlin.reflect.KClass
 interface ImageManagerService : Service
 
 
-interface ImagePlatformHelper {
+abstract class ImagePlatformHelper {
     /**
      * can add platform dependent codecs and etc.
      */
-    fun onAttach(imageManager: ImageManagerClient)
-    fun assignImage(img: Any?, ui: Any)
-//    fun startAnimation(ui: Any?)
-//    fun stopAnimation(ui: Any?)
+    abstract fun onAttach(imageManager: ImageManagerClient)
+
+    abstract fun assignImage(img: Any?, ui: Any)
+    abstract fun getBackendImage(forObj: Any?): BackendImage?
 }
 
 
-class ImagePlatformHelperEmpty() : ImagePlatformHelper {
+class ImagePlatformHelperEmpty : ImagePlatformHelper() {
     override fun onAttach(imageManager: ImageManagerClient) {
     }
 
     override fun assignImage(img: Any?, ui: Any) {
     }
 
+    override fun getBackendImage(forObj: Any?): BackendImage? = null
 //    override fun startAnimation(ui: Any?) {
 //    }
 //

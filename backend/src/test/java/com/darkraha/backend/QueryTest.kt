@@ -23,12 +23,12 @@ class QueryTest {
         q.source(srcFile)
 
         assertTrue(q.fileSource()==srcFile)
-        q.clear()
+        q.reset()
         assertTrue(q.fileSource()==null)
 
         q.objectParam(objFile)
         assertTrue(q.fileSource()==objFile)
-        q.clear()
+        q.reset()
 
         q.addNamedSpecialParam(Param.PARAM_FILE_SOURCE, mapFile)
         assertTrue(q.fileSource()==mapFile)

@@ -39,4 +39,8 @@ class LRUCache(maxItems: Int = 200) : Cache {
     override fun clear() {
         synchronized(cache) { cache.clear() }
     }
+
+    override fun cleanup() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 }

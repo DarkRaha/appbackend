@@ -16,6 +16,8 @@ interface Cache {
     fun remove(key: Any): Any?
 
     fun clear()
+
+    fun cleanup()
 }
 
 
@@ -31,9 +33,9 @@ class SoftRef(v: Any) : SoftReference<Any>(v) {
     var usage: Int = 0
 }
 
-interface MemoryUsage {
-    val memUsage: Int
-}
+//interface MemoryUsage {
+//    fun getMemoryUsage(obj:Any):Int
+//}
 
-typealias MemUsageCalculator = (Any) -> Int
+typealias MemoryUsage = (Any) -> Int
 

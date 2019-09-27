@@ -9,13 +9,13 @@ import kotlin.reflect.KClass
 class UsageLRUCache(maxMemory: Int = 8 * Units.Mb) : Cache {
 
 
-    val evals = HashMap<KClass<*>, MemUsageCalculator>()
+    val evals = HashMap<KClass<*>, MemoryUsage>()
     val cache = LinkedHashMap<Any, Any?>(20, 0.75f, true)
     val maxUsage = maxMemory
 
     var usage: Int = 0
 
-    fun addMemoryCalculator(clazz: KClass<*>, calc: MemUsageCalculator) {
+    fun addMemoryCalculator(clazz: KClass<*>, calc: MemoryUsage) {
         evals[clazz] = calc
     }
 
@@ -55,21 +55,28 @@ class UsageLRUCache(maxMemory: Int = 8 * Units.Mb) : Cache {
     override fun set(key: Any, value: Any) {
         synchronized(cache) {
             usage += calcMemory(value)
-
-            val it = cache.entries.iterator()
-
-            while (usage > maxUsage && it.hasNext()) {
-
-                val v = it.next()
-
-                if (v != null) {
-                    val mem = calcMemory(v.value!!)
-                    usage -= mem
-                    it.remove()
-                }
-            }
             cache[key] = value
         }
+    }
+
+
+    override fun cleanup() {
+
+//        val it = cache.entries.iterator()
+//
+//        while (usage > maxUsage && it.hasNext()) {
+//
+//            val v = it.next()
+//
+//            if (v != null) {
+//                val mem = calcMemory(v.value!!)
+//                usage -= mem
+//                it.remove()
+//            }
+//        }
+
+
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
 }

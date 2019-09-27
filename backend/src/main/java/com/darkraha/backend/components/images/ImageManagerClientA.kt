@@ -1,12 +1,13 @@
 package com.darkraha.backend.components.images
 
 import com.darkraha.backend.*
-import com.darkraha.backend.cache.MemUsageCalculator
+import com.darkraha.backend.cache.MemoryUsage
 import com.darkraha.backend.cache.SoftUsageLRUCache
 import com.darkraha.backend.client.ClientBase
 import com.darkraha.backend.components.diskcache.DiskCacheClient
 import com.darkraha.backend.components.endecode.EndecodeClient
 import com.darkraha.backend.components.endecode.FileDecoder
+import com.darkraha.backend.components.endecode.FileEncoder
 import com.darkraha.backend.components.http.HttpClient
 import com.darkraha.backend.extraparams.ImageLoadEP
 import java.io.File
@@ -28,6 +29,9 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         protected set
 
     protected var cache: SoftUsageLRUCache = SoftUsageLRUCache()
+
+    protected val backendImages: MutableList<BackendImage> = mutableListOf()
+
 
     /**
      * For checking is image actual for this ui object.
@@ -162,8 +166,8 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         }
 
 
-        val cvtImg = convertImage(img) ?: img
-        imagePlatformHelper.assignImage(cvtImg, ui)
+      //  val cvtImg = convertImage(img) ?: img
+        imagePlatformHelper.assignImage(img, ui)
         uiUrlMap.remove(ui)
 
 //        if (ep == null || (ep != null && ep.isAutoAnimate)) {
@@ -196,12 +200,16 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         return cache.remove(url)
     }
 
-    override fun addImageSizeCalculator(cls: KClass<*>, calc: MemUsageCalculator) {
+    override fun addImageSizeCalculator(cls: KClass<*>, calc: MemoryUsage) {
         cache.addMemoryCalculator(cls, calc)
     }
 
     override fun addImageDecoder(imageDecoder: FileDecoder) {
         endecoder.addDecoder(imageDecoder)
+    }
+
+    override fun addImageEncoder(imageEncoder: FileEncoder) {
+        endecoder.addEncoder(imageEncoder)
     }
 
     override fun attachImagePlatformHelper(imgHelper: ImagePlatformHelper) {

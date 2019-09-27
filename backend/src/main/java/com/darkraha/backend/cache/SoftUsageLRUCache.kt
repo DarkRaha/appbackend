@@ -1,7 +1,10 @@
 package com.darkraha.backend.cache
 
 import com.darkraha.backend.helpers.Units
-import java.lang.ref.SoftReference
+import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 
 /**
@@ -12,13 +15,14 @@ import kotlin.reflect.KClass
 class SoftUsageLRUCache(maxMemory: Int = 12 * Units.Mb) : Cache {
 
 
-    val evals = HashMap<KClass<*>, MemUsageCalculator>()
+    val evals = HashMap<KClass<*>, MemoryUsage>()
     val cache = LinkedHashMap<Any, SoftRef>(20, 0.75f, true)
     val maxUsage = maxMemory
+    val isCleaning = AtomicBoolean(false)
 
-    var usage: Int = 0
+    var usage: AtomicInteger = AtomicInteger(0)
 
-    fun addMemoryCalculator(clazz: KClass<*>, calc: MemUsageCalculator) {
+    fun addMemoryCalculator(clazz: KClass<*>, calc: MemoryUsage) {
         evals[clazz] = calc
     }
 
@@ -26,80 +30,93 @@ class SoftUsageLRUCache(maxMemory: Int = 12 * Units.Mb) : Cache {
     /**
      * Calc memory usage in bytes. If calculator not supplied, return 0.
      */
-    fun calcMemory(v: Any): Int {
-
-        if (v != null) {
-            return evals[v::class]?.invoke(v) ?: 0
-        }
-
-        return 0
+    fun calcMemory(v: Any?): Int {
+        return v?.run {
+            return  evals[v::class]?.invoke(v) ?: 0
+        } ?: 0
     }
 
     override val size: Int
         get() = synchronized(cache) { cache.size }
 
-    override fun get(key: Any): Any? {
-        synchronized(cache) {
-            return cache[key]?.get() ?: null
-        }
-    }
+    override fun get(key: Any): Any? = synchronized(cache) { cache[key]?.get() }
+
 
     override fun remove(key: Any): Any? {
-        synchronized(cache) {
-            val ret = cache.remove(key)
-
-            if (ret != null) {
-                usage -= ret.usage
+        return synchronized(cache) {
+            cache.remove(key)?.let {
+                usage.addAndGet(-it.usage)
+                it.get()
             }
-
-            return ret?.get()
         }
     }
 
     override fun clear() {
         synchronized(cache) {
             cache.clear()
-            usage = 0
+            usage.set(0)
         }
     }
 
     override fun set(key: Any, value: Any) {
-        synchronized(cache) {
-            val ref = SoftRef(value)
-            ref.usage = calcMemory(value)
-            usage += ref.usage
 
-
-            if (usage > maxUsage) {
-                cleanup()
+        SoftRef(value).also {
+            it.usage = calcMemory(value)
+            synchronized(cache) {
+                usage.addAndGet(it.usage)
+                cache[key] = it
             }
-
-            if (usage > maxUsage) {
-
-                val it = cache.entries.iterator()
-
-                while (usage > maxUsage && it.hasNext()) {
-
-                    val entry = it.next()
-                    val v = entry.value
-                    usage -= v.usage
-                    it.remove()
-                }
-            }
-
-            cache[key] = ref
         }
     }
 
 
-    private fun cleanup() {
-        val it = cache.entries.iterator()
-        while (it.hasNext()) {
-            val entry = it.next()
-            val ref = entry.value
-            if (ref.get() == null) {
-                usage -= ref.usage
-                it.remove()
+    override fun cleanup() {
+
+        synchronized(cache) {
+            if (isCleaning.get()) {
+                return
+            }
+
+            isCleaning.set(true)
+        }
+        cleanupEmpty()
+        cleanupForMemoryUsage()
+        isCleaning.set(false)
+    }
+
+
+    private fun cleanupForMemoryUsage() {
+        if (usage.get() > maxUsage) {
+            val entryCopy: MutableList<Map.Entry<Any, SoftRef>> = mutableListOf()
+
+            synchronized(cache) {
+                entryCopy.addAll(cache.entries)
+            }
+
+            val max = maxUsage / 2
+            entryCopy.forEach {
+                remove(it.key)
+
+                if (usage.get() < max) {
+                    return
+                }
+            }
+        }
+
+    }
+
+    /**
+     * Removes empty soft reference.
+     */
+    private fun cleanupEmpty() {
+        if (usage.get() > maxUsage && !isCleaning.get()) {
+            val entryCopy: MutableList<Map.Entry<Any, SoftRef>> = mutableListOf()
+            synchronized(cache) {
+                entryCopy.addAll(cache.entries)
+            }
+
+            entryCopy.forEach {
+                it.value.get() ?: remove(it.key)
             }
         }
     }

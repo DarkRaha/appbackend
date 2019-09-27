@@ -2,6 +2,7 @@ package com.darkraha.backend
 
 import com.darkraha.backend.client.ClientBase
 import com.darkraha.backend.components.mainthread.MainThread
+import com.darkraha.backend.helpers.Poolable
 import com.darkraha.backend.infos.*
 import java.io.File
 import java.lang.StringBuilder
@@ -18,20 +19,21 @@ import kotlin.reflect.KClass
  *@author Verma Rahul
  */
 class Query(
-    val params: ParamInfo = ParamInfo(),
-    val meta: MetaInfo = MetaInfo(),
-    val workflow: WorkflowManager = WorkflowManager()
+        val params: ParamInfo = ParamInfo(),
+        val meta: MetaInfo = MetaInfo(),
+        val workflow: WorkflowManager = WorkflowManager()
 ) :
-    WorkflowBuilder1,
-    UserQuery,
-    ClientQueryEditor by workflow,
-    ServiceWorkflowHelper,
-    ParamReader by params,
-    MetaInfoReader by meta,
-    WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
-    WorkflowExecutor by workflow,
-    ResultReader by workflow.response, ResultOptionsReader by workflow.response,
-    ErrorReader by workflow.response.errorInfo {
+        Poolable,
+        WorkflowBuilder1,
+        UserQuery,
+        ClientQueryEditor by workflow,
+        ServiceWorkflowHelper,
+        ParamReader by params,
+        MetaInfoReader by meta,
+        WorkflowState by workflow, WorkflowReader by workflow, Workflow by workflow,
+        WorkflowExecutor by workflow,
+        ResultReader by workflow.response, ResultOptionsReader by workflow.response,
+        ErrorReader by workflow.response.errorInfo {
 
 
     internal var _command: String? = null
@@ -179,7 +181,7 @@ class Query(
     }
 
     override fun addCookie(name: String, v: String): WorkflowBuilder1 =
-        apply { meta.inCookies[name] = v }
+            apply { meta.inCookies[name] = v }
 
     override fun optSaveOutHeaders(): WorkflowBuilder1 = apply { meta.saveHeaders() }
 
@@ -228,21 +230,21 @@ class Query(
     }
 
     override fun sourceClass(clsSource: KClass<*>?, clsSourceItem: KClass<*>?): WorkflowBuilder1 =
-        apply {
-            params.source.run {
-                cls = clsSource
-                clsItem = clsSourceItem
+            apply {
+                params.source.run {
+                    cls = clsSource
+                    clsItem = clsSourceItem
+                }
             }
-        }
 
     override fun destination(v: Any?, mimetype: String?, autoclose: Boolean): WorkflowBuilder1 =
-        apply {
-            params.run {
-                destination.value = v
-                destination.mimetype = mimetype
-                autoCloseDestination()
+            apply {
+                params.run {
+                    destination.value = v
+                    destination.mimetype = mimetype
+                    autoCloseDestination()
+                }
             }
-        }
 
     override fun destinationClass(cls: KClass<*>?, clsItem: KClass<*>?): WorkflowBuilder1 = apply {
         params.destination.cls = cls
@@ -306,13 +308,13 @@ class Query(
 
 
     override fun progressListener(block: (current: Float, total: Float) -> Unit): WorkflowBuilder1 =
-        apply {
-            workflow.progressListener = object : ProgressListener {
-                override fun onProgress(current: Float, total: Float) {
-                    block(current, total)
+            apply {
+                workflow.progressListener = object : ProgressListener {
+                    override fun onProgress(current: Float, total: Float) {
+                        block(current, total)
+                    }
                 }
             }
-        }
 
     override fun command(cmd: String?): WorkflowBuilder1 = apply { _command = cmd }
 
@@ -328,7 +330,7 @@ class Query(
 
     fun asWorkflowBuilder() = this as WorkflowBuilder1
 
-    fun clear() {
+    override fun reset() {
         _command = null
         _queryId = null
         params.clear()
