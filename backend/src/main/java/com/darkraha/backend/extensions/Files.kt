@@ -34,6 +34,25 @@ fun File.cleanup(oldTimeMs: Long) {
     }
 }
 
+/**
+ * Delete old files.
+ * @param oldTimeMs ignore values <=0
+ */
+fun File.cleanupIgnoreTmp(oldTimeMs: Long) {
+    if (oldTimeMs <= 0) {
+        return
+    }
+    val curTime = System.currentTimeMillis()
+
+    this.walk().forEach {
+        if (it.isFile && it.extension != "tmp") {
+            if (curTime - it.lastModified() > oldTimeMs) {
+                it.delete()
+            }
+        }
+    }
+}
+
 
 fun File.cleanup(toSize: Long, oldTimeMin: Long, oldTimeMax: Long) {
     var time = oldTimeMax
@@ -48,7 +67,28 @@ fun File.cleanup(toSize: Long, oldTimeMin: Long, oldTimeMax: Long) {
         time = time + (if (time > day) -day else -hour)
 
         while (sizeDir() > toSize && time > oldTimeMin && it < 20) {
-            cleanup(time);
+            cleanup(time)
+            time = time + (if (time > day) -day else -hour)
+            ++it
+        }
+    }
+}
+
+
+fun File.cleanupIgnoreTmp(toSize: Long, oldTimeMin: Long, oldTimeMax: Long) {
+    var time = oldTimeMax
+
+    cleanupIgnoreTmp(oldTimeMax)
+
+    if (toSize > 0) {
+        val hour = Units.HOUR_MS
+        val day = Units.DAY_MS
+        var it = 0
+
+        time = time + (if (time > day) -day else -hour)
+
+        while (sizeDir() > toSize && time > oldTimeMin && it < 20) {
+            cleanupIgnoreTmp(time)
             time = time + (if (time > day) -day else -hour)
             ++it
         }

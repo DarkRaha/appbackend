@@ -3,6 +3,7 @@ package com.darkraha.backend.components.diskcache
 import com.darkraha.backend.*
 import com.darkraha.backend.cache.LRUCache
 import com.darkraha.backend.extensions.cleanup
+import com.darkraha.backend.extensions.cleanupIgnoreTmp
 import com.darkraha.backend.extensions.extractFileExtension
 import java.io.File
 import java.lang.IllegalArgumentException
@@ -20,7 +21,7 @@ interface DiskCacheService : Service {
 
     fun subDiskCache(subdir: String): DiskCacheService
 
-    fun cleanup(toSize: Long, timeOldMin: Long, timeOldMax: Long) = getWorkdir().cleanup(toSize, timeOldMin, timeOldMax)
+    fun cleanup(toSize: Long, timeOldMin: Long, timeOldMax: Long) = getWorkdir().cleanupIgnoreTmp(toSize, timeOldMin, timeOldMax)
 
     fun clear() {
         val workdir = getWorkdir()
