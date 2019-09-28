@@ -17,7 +17,7 @@ class ImageManagerDefaultTest {
     @JvmField
     val tmpFolder = TemporaryFolder()
 
-    val imageManager = ImageManagerClientDefault.newInstance()
+    val imageManager = ImageManager.newInstance()
     @Volatile
     var isSuccess = false
 

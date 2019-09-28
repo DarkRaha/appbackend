@@ -5,7 +5,7 @@ import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
 import com.darkraha.backend.components.images.BackendImage
-import com.darkraha.backend.components.images.ImageManagerClient
+import com.darkraha.backend.components.images.ImageManagerClientA
 import com.darkraha.backend.components.images.ImagePlatformHelper
 import com.darkraha.backend_android.components.endecode.GifDecoder
 import com.darkraha.backend_android.components.endecode.GifImageDecoder
@@ -15,7 +15,7 @@ import com.darkraha.backend_android.components.images.gif.GifDrawable
 
 // todo replace by BackendImage
 open class AndroidImagePlatformHelper : ImagePlatformHelper() {
-    protected lateinit var imageManager: ImageManagerClient
+    protected lateinit var imageManager: ImageManagerClientA
 
     protected var backendImages = mutableListOf(
             BackendImageJpg(JpegImageDecoder(), null),
@@ -23,7 +23,7 @@ open class AndroidImagePlatformHelper : ImagePlatformHelper() {
             BackendImageGif(GifImageDecoder(), null)
     )
 
-    override fun onAttach(imageManager: ImageManagerClient) {
+    override fun onAttach(imageManager: ImageManagerClientA) {
 
         this.imageManager = imageManager
 

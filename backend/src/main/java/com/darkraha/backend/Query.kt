@@ -1,10 +1,10 @@
 package com.darkraha.backend
 
-import com.darkraha.backend.client.ClientBase
+import com.darkraha.backend.client.BackendClientA
+import com.darkraha.backend.client.BackendClientBase
 import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.helpers.Poolable
 import com.darkraha.backend.infos.*
-import java.io.File
 import java.lang.StringBuilder
 import java.lang.ref.WeakReference
 import java.util.concurrent.ExecutorService
@@ -126,7 +126,7 @@ class Query(
         workflow.mainThread = m
     }
 
-    override fun client(v: ClientBase): WorkflowBuilder1 = apply {
+    override fun client(v: BackendClientA): WorkflowBuilder1 = apply {
         workflow.client = v
     }
 

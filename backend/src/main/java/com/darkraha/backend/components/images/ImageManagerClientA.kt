@@ -3,7 +3,7 @@ package com.darkraha.backend.components.images
 import com.darkraha.backend.*
 import com.darkraha.backend.cache.MemoryUsage
 import com.darkraha.backend.cache.SoftUsageLRUCache
-import com.darkraha.backend.client.ClientBase
+import com.darkraha.backend.client.BackendClientBase
 import com.darkraha.backend.components.diskcache.DiskCacheClient
 import com.darkraha.backend.components.endecode.EndecodeClient
 import com.darkraha.backend.components.endecode.FileDecoder
@@ -15,7 +15,7 @@ import java.util.*
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 
-abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
+abstract class ImageManagerClientA : BackendClientBase() {
 
     lateinit var diskCacheClient: DiskCacheClient
         protected set
@@ -29,8 +29,6 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         protected set
 
     protected var cache: SoftUsageLRUCache = SoftUsageLRUCache()
-
-    protected val backendImages: MutableList<BackendImage> = mutableListOf()
 
 
     /**
@@ -166,7 +164,7 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         }
 
 
-      //  val cvtImg = convertImage(img) ?: img
+        //  val cvtImg = convertImage(img) ?: img
         imagePlatformHelper.assignImage(img, ui)
         uiUrlMap.remove(ui)
 
@@ -177,93 +175,77 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
         return true
     }
 
-    override fun cancelLoad(ui: Any) {
+    open fun cancelLoad(ui: Any) {
         var query = loadingFiles[uiUrlMap[ui]]
         if (query != null) {
             query.cancelUi(ui, null, true)
         }
     }
 
-    override fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
+    open fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
         imgConverters[cls] = imgConv
     }
 
-    override fun convertImage(img: Any): Any? {
-        return imgConverters[img::class]?.invoke(img)
-    }
+    open fun convertImage(img: Any): Any? = imgConverters[img::class]?.invoke(img)
 
-    override fun removeFromDiskcache(url: String): File? {
-        return diskCacheClient.getFile(url)
-    }
+    open fun removeFromDiskcache(url: String): File? = diskCacheClient.getFile(url)
 
-    override fun removeFromMemory(url: String): Any? {
-        return cache.remove(url)
-    }
+    open fun removeFromMemory(url: String): Any? = cache.remove(url)
 
-    override fun addImageSizeCalculator(cls: KClass<*>, calc: MemoryUsage) {
-        cache.addMemoryCalculator(cls, calc)
-    }
+    open fun addImageSizeCalculator(cls: KClass<*>, calc: MemoryUsage) =
+            cache.addMemoryCalculator(cls, calc)
 
-    override fun addImageDecoder(imageDecoder: FileDecoder) {
-        endecoder.addDecoder(imageDecoder)
-    }
+    open fun addImageDecoder(imageDecoder: FileDecoder) =
+            endecoder.addDecoder(imageDecoder)
 
-    override fun addImageEncoder(imageEncoder: FileEncoder) {
-        endecoder.addEncoder(imageEncoder)
-    }
+    open fun addImageEncoder(imageEncoder: FileEncoder) =
+            endecoder.addEncoder(imageEncoder)
 
-    override fun attachImagePlatformHelper(imgHelper: ImagePlatformHelper) {
-        imagePlatformHelper = imgHelper
+    open fun attachImagePlatformHelper(imgHelper: ImagePlatformHelper) = imgHelper.let {
+        imagePlatformHelper = it
         imagePlatformHelper.onAttach(this)
     }
 
-    override fun getDiskcache(): DiskCacheClient {
-        return diskCacheClient
-    }
+    open fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP?): Boolean =
+            assignImage(cache[url], ui, ep)
 
-    override fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP?): Boolean {
-        return assignImage(cache[url], ui, ep)
-    }
 
-    override fun buildLoad(
+    open fun buildLoad(
             url: String,
             ui: Any?,
             cb: Callback<UserQuery>?,
             ep: ImageLoadEP?,
             progressListener: ProgressListener?
     ): QueryBuilder<WorkflowBuilder1> {
-        val builder =
-                prepareQueryFrom(httpClient.prepareDefaultQuery())
-                        .queryId(url)
-                        .url(url)
-                        .uiParam(ui)
-                        .destination(diskCacheClient.genFile(url))
-                        .extraParam(ep)
-                        .addCallback(cb)
-                        .progressListener(progressListener)
-                        .allowAppend(true)
-                        .callbackFirst(callbackLoad)
-                        .resSync(url)
-                        .addPrepareProcessor(::onPrepareLoad)
-                        .addPostProcessor(::onPostLoad)
-                        .addPreProcessor(::onPreLoad)
-                        .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
 
-
-        return builder
+        return prepareQuery(httpClient.prepareQuery())
+                .queryId(url)
+                .url(url)
+                .uiParam(ui)
+                .destination(diskCacheClient.genFile(url))
+                .extraParam(ep)
+                .addCallback(cb)
+                .progressListener(progressListener)
+                .allowAppend(true)
+                .callbackFirst(callbackLoad)
+                .resSync(url)
+                .addPrepareProcessor(::onPrepareLoad)
+                .addPostProcessor(::onPostLoad)
+                .addPreProcessor(::onPreLoad)
+                .chainTypeCreate(if (ui == null) ChainType.STAND_ALONE else ChainType.FIRST_ELEMENT)
     }
 
-    override fun buildDecode(
+    open fun buildDecode(
             url: String?,
             file: File,
             ui: Any?,
-            cb: Callback<UserQuery>?,
-            ep: ImageLoadEP?,
-            progressListener: ProgressListener?
+            cb: Callback<UserQuery>? = null,
+            ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
     ): WorkflowBuilder<WorkflowBuilder1> {
         val _url = url ?: file.toURI().toString()
 
-        return prepareQueryFrom(endecoder.prepareDecode(file, "image/*", null, ep, cb))
+        return prepareQuery(endecoder.prepareDecode(file, "image/*", null, ep, cb))
                 .queryId(_url)
                 .uiParam(ui)
                 .allowAppend(false)
@@ -273,6 +255,58 @@ abstract class ImageManagerClientA : ImageManagerClient, ClientBase() {
                 .addPostProcessor(::onPostDecode)
                 .callbackFirst(callbackDecode)
                 .chainTypeCreate(ChainType.STAND_ALONE)
+    }
+
+    fun buildDecodeFile(
+            file: File, ui: Any?, cb: Callback<UserQuery>? = null, ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
+    ): QueryBuilder<WorkflowBuilder1> {
+        return buildDecode(null, file, ui, cb, ep, progressListener)
+    }
+
+    //---------------------------------------------------------------------------------------------------
+    fun decodeFile(
+            file: File, ui: Any?, cb: Callback<UserQuery>? = null, ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
+    ) {
+        buildDecodeFile(file, ui, cb, ep, progressListener).exeAsync()
+    }
+
+    fun download(
+            url: String, cb: Callback<UserQuery>? = null, ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
+    ) {
+        buildLoad(url, null, cb, ep, progressListener).exeAsync()
+    }
+
+
+    fun load(
+            url: String,
+            ui: Any?,
+            cb: Callback<UserQuery>? = null,
+            ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
+    ) {
+        buildLoad(url, ui, cb, ep, progressListener).exeAsync()
+    }
+
+
+    /**
+     * Load image from disk cache.
+     * @return false if image file don't exist in disk cache
+     */
+    fun loadFromDiskCache(
+            url: String, ui: Any?, cb: Callback<UserQuery>? = null, ep: ImageLoadEP? = null,
+            progressListener: ProgressListener? = null
+    ): Boolean {
+        val file = diskCacheClient.getFile(url)
+
+        if (file != null) {
+            buildDecode(url, file, ui, cb, ep, progressListener).exeAsync()
+            return true
+        }
+
+        return false
     }
 
 

@@ -1,8 +1,8 @@
 package com.darkraha.backend
 
-import com.darkraha.backend.client.ClientBase
+import com.darkraha.backend.client.BackendClientA
+
 import com.darkraha.backend.components.mainthread.MainThread
-import com.darkraha.backend.components.qmanager.QueryManager
 import com.darkraha.backend.helpers.AtomicFlag
 import com.darkraha.backend.helpers.LockManager
 import com.darkraha.backend.infos.CancelInfo
@@ -54,7 +54,7 @@ interface WorkflowState {
 
 interface WorkflowReader {
     fun service(): Service?
-    fun client(): ClientBase?
+    fun client(): BackendClientA?
     fun lock(): ReentrantLock
     fun cancelInfo(): CancelInfo
 //    fun chainTypeCreate(): ChainType
@@ -124,9 +124,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     private var bgThread: Thread? = null
     var executor: ExecutorService? = null
     var service: Service? = null
-    var client: ClientBase? = null
+    var client: BackendClientA? = null
     var mainThread: MainThread? = null
-    var queryManager: QueryManager? = null
 
     val callbacks = mutableListOf<Callback<UserQuery>>()
     var callbakFirst: Callback<UserQuery>? = null
@@ -348,7 +347,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         setPrepare()
 
         try {
-            queryManager?.onQueryStart(owner)
             client?.onQueryStart(owner)
             dispatchWorkflowListeners(WORKFLOW_PREPARE_START)
             dispatchPrepare()
@@ -430,7 +428,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
          println("Finished ${owner}")
         dispatchWorkflowListeners(WORKFLOW_FINISH_END)
-        queryManager?.onQueryEnd(owner)
         client?.onQueryEnd(owner)
         lock.lock()
         conditionFinished.signalAll()
@@ -937,7 +934,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     //----------------------------------------------------------------------------------------
 
-    override fun client(): ClientBase? = client
+    override fun client(): BackendClientA? = client
     override fun lock(): ReentrantLock = lock
     override fun service(): Service? = service
     override fun workflowStep(): Int = workflowStep

@@ -1,21 +1,14 @@
 package com.darkraha.backend
 
-import com.darkraha.backend.components.diskcache.DiskCacheClientDefault
+import com.darkraha.backend.components.diskcache.DiskCacheClient
 import com.darkraha.backend.components.endecode.EndecodeClient
-import com.darkraha.backend.components.endecode.EndecodeClientDefault
 import com.darkraha.backend.components.http.HttpClient
-import com.darkraha.backend.components.http.HttpClientDefault
-import com.darkraha.backend.components.images.ImageManagerClient
-import com.darkraha.backend.components.images.ImageManagerClientDefault
-import com.darkraha.backend.components.images.ImagePlatformHelper
-import com.darkraha.backend.components.images.ImagePlatformHelperEmpty
+import com.darkraha.backend.components.images.*
 import com.darkraha.backend.components.json.JsonManager
 import com.darkraha.backend.components.json.JsonManagerDefault
 import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.components.mainthread.MainThreadDefault
-import com.darkraha.backend.components.qmanager.QueryManager
-import com.darkraha.backend.components.qmanager.QueryManagerDefault
-import com.darkraha.backend.components.restclient.JsonRestClientBase
+
 import com.darkraha.backend.helpers.ErrorFilterManager
 import com.darkraha.backend.helpers.ObjectPool
 import com.darkraha.backend.livedata.UIEventT
@@ -42,23 +35,18 @@ open class Backend private constructor() {
     lateinit var mainThread: MainThread
         protected set
 
-
-    lateinit var queryManager: QueryManager
-        protected set
-
-
     lateinit var httpClient: HttpClient
         protected set
 
 
-    lateinit var diskCacheClient: DiskCacheClientDefault
+    lateinit var diskCacheClient: DiskCacheClient
         protected set
 
 
     lateinit var endecodeClient: EndecodeClient
         protected set
 
-    lateinit var imageManager: ImageManagerClient
+    lateinit var imageManager: ImageManagerClientA
         protected set
 
     lateinit var workdir: File
@@ -155,11 +143,11 @@ open class Backend private constructor() {
 
         private var _executor: ExecutorService? = null
         private var _mainThread: MainThread? = null
-        private var _queryManager: QueryManager? = null
+
         private var _httpClient: HttpClient? = null
-        private var _diskCacheClient: DiskCacheClientDefault? = null
+        private var _diskCacheClient: DiskCacheClient? = null
         private var _endecodeClient: EndecodeClient? = null
-        private var _imageManager: ImageManagerClient? = null
+        private var _imageManager: ImageManagerClientA? = null
         private var _asShared = false
         private var _imagePlatformHelper: ImagePlatformHelper? = null
         private var _workdir: File? = null
@@ -182,17 +170,13 @@ open class Backend private constructor() {
             return this
         }
 
-        fun queryManager(qm: QueryManager): Builder {
-            _queryManager = qm
-            return this
-        }
 
         fun httpClient(hc: HttpClient): Builder {
             _httpClient = hc
             return this
         }
 
-        fun diskcache(dc: DiskCacheClientDefault): Builder {
+        fun diskcache(dc: DiskCacheClient): Builder {
             _diskCacheClient = dc
             return this
         }
@@ -232,22 +216,21 @@ open class Backend private constructor() {
             result.mainThread = _mainThread ?: MainThreadDefault()
             result.error = UIEventT("Backend error", null, result.mainThread)
 
-            result.queryManager = _queryManager ?: QueryManagerDefault()
             result.workdir = _workdir ?: File("workdir")
 
             result.diskCacheClient =
-                    _diskCacheClient ?: DiskCacheClientDefault.Builder()
+                    _diskCacheClient ?: DiskCacheClient.Builder()
                             .backend(result)
                             .build()
 
             result.httpClient =
-                    _httpClient ?: HttpClientDefault.Builder().backend(result).build()
+                    _httpClient ?: HttpClient.Builder().backend(result).build()
 
             result.endecodeClient =
                     _endecodeClient
-                            ?: EndecodeClientDefault.Builder().backend(result).build()
+                            ?: EndecodeClient.Builder().backend(result).build()
 
-            result.imageManager = _imageManager ?: ImageManagerClientDefault.Builder()
+            result.imageManager = _imageManager ?: ImageManager.Builder()
                     .backend(result)
                     .diskCacheClient(result.diskCacheClient.subClient("images"))
                     .endecodeClient(result.endecodeClient)

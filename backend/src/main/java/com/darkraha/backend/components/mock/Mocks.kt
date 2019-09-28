@@ -1,20 +1,19 @@
 package com.darkraha.backend.components.mock
 
 import com.darkraha.backend.*
-import com.darkraha.backend.client.ClientBase
+import com.darkraha.backend.client.BackendClientBase
 import java.io.File
 
 /**
  * @author Verma Rahul
  */
-class MockClient : ClientBase() {
+class MockClient : BackendClientBase() {
 
-    override fun prepareDefaultQuery(): Query {
-        val q = super.prepareDefaultQuery()
+    override fun prepareQuery(srcQuery: Query?): Query {
+        val q = super.prepareQuery(srcQuery)
         q.command("MockCommand")
         return q
     }
-
 }
 
 

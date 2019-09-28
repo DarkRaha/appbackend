@@ -5,7 +5,6 @@ import kotlin.concurrent.timer
 
 /**
  * Wrapper over main/gui thread.
- * TODO use kotlin opportunities
  *
  * @author Verma Rahul
  */

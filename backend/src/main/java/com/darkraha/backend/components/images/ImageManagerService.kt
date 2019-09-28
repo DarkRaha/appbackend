@@ -13,7 +13,7 @@ abstract class ImagePlatformHelper {
     /**
      * can add platform dependent codecs and etc.
      */
-    abstract fun onAttach(imageManager: ImageManagerClient)
+    abstract fun onAttach(imageManager: ImageManagerClientA)
 
     abstract fun assignImage(img: Any?, ui: Any)
     abstract fun getBackendImage(forObj: Any?): BackendImage?
@@ -21,17 +21,11 @@ abstract class ImagePlatformHelper {
 
 
 class ImagePlatformHelperEmpty : ImagePlatformHelper() {
-    override fun onAttach(imageManager: ImageManagerClient) {
+    override fun onAttach(imageManager: ImageManagerClientA) {
     }
 
     override fun assignImage(img: Any?, ui: Any) {
     }
 
     override fun getBackendImage(forObj: Any?): BackendImage? = null
-//    override fun startAnimation(ui: Any?) {
-//    }
-//
-//    override fun stopAnimation(ui: Any?) {
-//    }
-
 }

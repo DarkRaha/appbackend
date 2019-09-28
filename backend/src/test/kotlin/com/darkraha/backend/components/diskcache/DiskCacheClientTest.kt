@@ -5,7 +5,7 @@ import org.junit.Test
 
 class DiskCacheClientTest {
 
-    val dc = DiskCacheClientDefault.newInstance()
+    val dc = DiskCacheClient.newInstance()
 
     @Test
     fun test() {

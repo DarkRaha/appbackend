@@ -2,7 +2,6 @@ package com.darkraha.backend_android
 
 import android.app.Application
 import com.darkraha.backend.Backend
-import com.darkraha.backend.components.images.ImageManagerClientDefault
 import com.darkraha.backend.helpers.ErrorFilterManager
 import com.darkraha.backend_android.components.images.AndroidImagePlatformHelper
 import com.darkraha.backend_android.components.mainthread.AndroidMainThread

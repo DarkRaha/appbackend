@@ -2,19 +2,15 @@ package com.darkraha.backend.components.images
 
 import com.darkraha.backend.*
 import com.darkraha.backend.components.diskcache.DiskCacheClient
-import com.darkraha.backend.components.diskcache.DiskCacheClientDefault
 import com.darkraha.backend.components.endecode.EndecodeClient
-import com.darkraha.backend.components.endecode.EndecodeClientDefault
 import com.darkraha.backend.components.http.HttpClient
-import com.darkraha.backend.components.http.HttpClientDefault
 import com.darkraha.backend.infos.CancelInfo
-import java.util.concurrent.ExecutorService
 
 
 /**
  * @author Verma Rahul
  */
-open class ImageManagerClientDefault protected constructor() : ImageManagerClientA() {
+open class ImageManager protected constructor() : ImageManagerClientA() {
 
 
     override fun onLoadSuccessCallback(query: UserQuery) {
@@ -39,26 +35,22 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         if (query.chainTypeResponse() == ChainType.LAST_ELEMENT
                 || query.chainTypeResponse() == ChainType.STAND_ALONE
         ) {
-
             assignImage(query)
-//            val url = query.getQueryId()
-//            val img = query.result()
-
-//            if (url != null && img != null) {
-//                cache[url] = img
-//                 println("ImageManagerClientA (Default) save to memory result: result=${img?.javaClass?.simpleName} url: ${url} img=${cache[url]}")
-//            } else {
-//                println("ImageManagerClientA (Default)Can not save to memory result: result=${img?.javaClass?.simpleName} url: ${url} ")
-//            }
         }
     }
 
     override fun onPrepareLoad(q: UserQuery, response: ClientQueryEditor) {
 
 
+        val url = q.url()!!
+
+        if (!url.startsWith("http")) {
+            response.error("Http or https schemes supported")
+            return
+        }
+
         if (!checkCachesBeforeLoad(q, response)) {
 
-            val url = q.url()!!
 
             synchronized(loadingFiles) {
                 val qAlready = loadingFiles[url]
@@ -68,11 +60,9 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
                     loadingFiles[url] = q
                 }
 
-                val ui = q.uiParam()
-                if (ui != null) {
-                    uiUrlMap[ui] = url
+                q.uiParam()?.run {
+                    uiUrlMap[this] = url
                 }
-
             }
         }
     }
@@ -83,7 +73,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
 
 
     override fun onPrepareDecode(q: UserQuery, response: ClientQueryEditor) {
-         if (q.isStandAloneQuery()) {//?
+        if (q.isStandAloneQuery()) {//?
             q.uiParam()?.let {
                 uiUrlMap[it] = q.getQueryId()
             }
@@ -113,15 +103,15 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
     }
 
 
-    class Builder : ClientBuilder<ImageManagerClientDefault, ImageManagerService, Builder>() {
+    class Builder : ClientBuilder<ImageManager, ImageManagerService, Builder>() {
 
         var _diskCacheClient: DiskCacheClient? = null
         var _httpClient: HttpClient? = null
         var _endecodeClient: EndecodeClient? = null
         var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperEmpty()
 
-        override fun newResult(): ImageManagerClientDefault {
-            return ImageManagerClientDefault()
+        override fun newResult(): ImageManager {
+            return ImageManager()
         }
 
         fun diskCacheClient(dc: DiskCacheClient): Builder {
@@ -150,7 +140,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
         }
 
         override fun checkWorkdir() {
-            _workdir = _diskCacheClient?.getWorkDir()
+            _workdir = _diskCacheClient?.workdir
             super.checkWorkdir()
         }
 
@@ -159,12 +149,11 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
                 if (_backend != null) {
                     _diskCacheClient = _backend!!.diskCacheClient
                 } else {
-                    val dcBuilder = DiskCacheClientDefault.Builder()
+                    val dcBuilder = DiskCacheClient.Builder()
                     if (_workdir != null) {
                         dcBuilder.workdir(_workdir!!)
                     }
 
-                    dcBuilder.queryManager(_queryManager!!)
                     _diskCacheClient = dcBuilder.build()
                 }
             }
@@ -172,21 +161,19 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
 
         open fun checkHttpClient() {
             if (_httpClient == null) {
-                _httpClient = _backend?.httpClient ?: HttpClientDefault.Builder().queryManager(
-                        _queryManager!!
-                ).build()
+                _httpClient = _backend?.httpClient ?: HttpClient.Builder().build()
             }
         }
 
         open fun checkEndecodeClient() {
             if (_endecodeClient == null) {
                 _endecodeClient = _backend?.endecodeClient
-                        ?: EndecodeClientDefault.Builder().queryManager(result.queryManager).build()
+                        ?: EndecodeClient.Builder().build()
             }
         }
 
 
-        override fun build(): ImageManagerClientDefault {
+        override fun build(): ImageManager {
             super.build()
             checkDiskcache()
             checkHttpClient()
@@ -207,7 +194,7 @@ open class ImageManagerClientDefault protected constructor() : ImageManagerClien
 
 
     companion object {
-        fun newInstance(): ImageManagerClientDefault {
+        fun newInstance(): ImageManager {
             return Builder().build()
         }
     }

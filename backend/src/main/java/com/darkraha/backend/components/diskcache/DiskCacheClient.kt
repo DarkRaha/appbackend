@@ -1,51 +1,147 @@
 package com.darkraha.backend.components.diskcache
 
-import com.darkraha.backend.Callback
-import com.darkraha.backend.QueryBuilder
-import com.darkraha.backend.UserQuery
-import com.darkraha.backend.WorkflowBuilder1
-import com.darkraha.backend.client.Client
+import com.darkraha.backend.*
+import com.darkraha.backend.client.BackendClientBase
+import com.darkraha.backend.infos.Param
 import java.io.File
 
-interface DiskCacheClient : Client {
+/**
+ *
+ *
+ * @author Verma Rahul
+ */
+open class DiskCacheClient protected constructor() : BackendClientBase() {
 
-    /**
-     * Creates new disk cache based on this client. As example image manager can make folder images and work within it.
-     */
-    fun subClient(subdir: String): DiskCacheClient
 
+    open fun subClient(subdir: String): DiskCacheClient {
+        val builder = Builder()
 
-    fun getWorkDir(): File
+        builder.service(srv().subDiskCache(subdir))
+                .backend(backend)
+                .mainThread(mainThread!!)
+                .executorService(executorService!!)
+                .allowChange(true)
+
+        return builder.build()
+
+    }
+
+    protected var allowChange = false
+
+    protected inline fun srv(): DiskCacheService = service as DiskCacheService
+
 
     /**
      * Generates file for disk cache
      * @param suffix modification
      */
-    fun genFile(urlKey: String, suffix: String = ""): File
+    open fun genFile(urlKey: String, suffix: String=""): File {
+        return srv().genFile(urlKey, suffix)
+    }
+
 
     /**
      * Gets file from disk cache.
      * @return null, if file not exist
      */
-    fun getFile(urlKey: String, suffix: String = ""): File?
+    open fun getFile(urlKey: String, suffix: String=""): File? {
+        return srv().getFile(urlKey, suffix)
+    }
 
     /**
      * Cleans old data in disk cache asynchronously.
      */
-    fun clean(maxTime: Long, minTime: Long = maxTime, toSize: Long = 200 * DiskCacheConsts.MB_BYTES, cb: Callback<UserQuery>? = null): UserQuery
-
-    fun clear(cb: Callback<UserQuery>? = null): UserQuery
+    open fun clean(
+            maxTime: Long,
+            minTime: Long = maxTime,
+            toSize: Long = 200 * DiskCacheConsts.MB_BYTES,
+            cb: Callback<UserQuery>? = null
+    ): UserQuery {
+        return buildClean(maxTime, minTime, toSize).addCallback(cb).exeAsync()
+    }
 
     /**
-     * Adds file to cache disk.
+     * Clears all data in dis cache.
      */
-    fun putFile(keyUrl: String, file: File, cb: Callback<UserQuery>? = null): UserQuery
+    open fun clear(cb: Callback<UserQuery>?): UserQuery {
+        return buildClear().addCallback(cb).exeAsync()
+    }
 
-    //------------------------------------------------------------------------------------
-    fun buildClean(maxTime: Long, minTime: Long = maxTime, toSize: Long = 0): QueryBuilder<WorkflowBuilder1>
 
-    fun buildClear(): QueryBuilder<WorkflowBuilder1>
+    open fun putFile(keyUrl: String, file: File, cb: Callback<UserQuery>?): UserQuery {
+        return buildPutFile(keyUrl, file).exeAsync()
+    }
 
-    fun buildPutFile(keyUrl: String, file: File): QueryBuilder<WorkflowBuilder1>
 
+    //---------------------------------------------------------------------------------------------------------------
+
+    open fun buildClean(
+            maxTime: Long,
+            minTime: Long,
+            toSize: Long
+    ): QueryBuilder<WorkflowBuilder1> {
+        return prepareQuery().command(DiskCacheConsts.CMD_CLEANUP)
+                .addNamedSpecialParam(Param.PARAM_OLD_TIME_MAX, maxTime)
+                .addNamedSpecialParam(Param.PARAM_OLD_TIME_MIN, minTime)
+                .addNamedSpecialParam(Param.PARAM_TO_SIZE, toSize)
+    }
+
+    open fun buildClear(): QueryBuilder<WorkflowBuilder1> {
+        return prepareQuery().command(DiskCacheConsts.CMD_CLEAR)
+    }
+
+    open fun buildPutFile(keyUrl: String, file: File): QueryBuilder<WorkflowBuilder1> {
+        return prepareQuery().command(DiskCacheConsts.CMD_PUT)
+                .addNamedSpecialParam(Param.PARAM_FILE_SOURCE, file)
+                .addNamedSpecialParam(Param.PARAM_KEY_URL, keyUrl)
+    }
+
+
+    //-------------------------------------------------------------------------------------------------
+    class Builder : ClientBuilder<DiskCacheClient, DiskCacheService, Builder>() {
+
+
+        private var _allowChange = false
+
+
+        override fun newResult(): DiskCacheClient = DiskCacheClient()
+
+        override fun checkService() {
+            if (_service == null) {
+                _service = DiskCacheServiceDefault(_workdir ?: File("diskcache"))
+            }
+        }
+
+        override fun checkWorkdir() {
+            if (_workdir == null) {
+                _workdir = if (_backend != null) {
+                    File(_backend!!.workdir, "diskcache")
+                } else {
+                    _service?.getWorkdir() ?: File("diskcache")
+                }
+                _workdir!!.mkdirs()
+            }
+        }
+
+
+        fun allowChange(v: Boolean): Builder {
+            _allowChange = v
+            return this
+        }
+
+        override fun build(): DiskCacheClient {
+            super.build()
+            result.allowChange = _allowChange
+            return result
+        }
+    }
+
+
+    companion object {
+
+        @JvmStatic
+        fun newInstance(): DiskCacheClient {
+            return Builder().build()
+        }
+    }
 }

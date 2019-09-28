@@ -1,6 +1,7 @@
 package com.darkraha.backend
 
-import com.darkraha.backend.client.ClientBase
+import com.darkraha.backend.client.BackendClientA
+import com.darkraha.backend.client.BackendClientBase
 import com.darkraha.backend.components.mainthread.MainThread
 
 import java.util.concurrent.ExecutorService
@@ -43,7 +44,7 @@ interface WorkflowBuilder<Self> : QueryBuilder<Self>
     /**
      * Sets client own query.
      */
-    fun client(v: ClientBase): Self
+    fun client(v: BackendClientA): Self
 
     /**
      * Adds extra work for prepare stage.
