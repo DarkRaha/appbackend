@@ -23,8 +23,8 @@ class WorkflowTest {
 
     @Test
     fun testProcessors() {
-        val queryManager = backend.queryManager
-        var query = queryManager.newQuery()
+       
+        var query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.state=4
@@ -54,8 +54,8 @@ class WorkflowTest {
 
     @Test
     fun testWorkflowListener() {
-        val queryManager = backend.queryManager
-        var query = queryManager.newQuery()
+      
+        var query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.result = ok
@@ -83,7 +83,7 @@ class WorkflowTest {
 
 
         steps.clear()
-        query = queryManager.newQuery()
+        query = Query()
         query.service(mockService)
         query.mainThread(backend.mainThread)
         query.executor(executor).addOnSuccess { }
@@ -101,8 +101,8 @@ class WorkflowTest {
 
     @Test
     fun testEmptyWorkflowOk() {
-        val queryManager = backend.queryManager
-        val query = queryManager.newQuery()
+      
+        val query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.result = ok
@@ -120,8 +120,8 @@ class WorkflowTest {
 
     @Test
     fun testEmptyWorkflowError() {
-        val queryManager = backend.queryManager
-        val query = queryManager.newQuery()
+       
+        val query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.state = 1
@@ -143,8 +143,8 @@ class WorkflowTest {
 
     @Test
     fun testEmptyWorkflowCancel() {
-        val queryManager = backend.queryManager
-        val query = queryManager.newQuery()
+       
+        val query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.state = 2
@@ -161,8 +161,8 @@ class WorkflowTest {
 
     @Test
     fun testProgressListener() {
-        val queryManager = backend.queryManager
-        val query = queryManager.newQuery()
+       
+        val query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         var progress = 0f
@@ -185,8 +185,8 @@ class WorkflowTest {
 
     @Test
     fun testCallbacks() {
-        val queryManager = backend.queryManager
-        val query = queryManager.newQuery()
+        
+        val query = Query()
         val executor = Executors.newFixedThreadPool(1)
         val mockService = MockService()
         mockService.result = ok

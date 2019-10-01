@@ -20,7 +20,7 @@ interface ResultReader {
     /**
      * Raw result srcMimetype.
      */
-    fun rawMimetype(): String?
+    fun resultMimetype(): String?
 
     /**
      * Raw string result.
@@ -81,7 +81,7 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
     var rawResultBytes: ByteArray? = null
     var rawResultFile: File? = null
     var rawSize: Long = 0
-    var rawMimetype: String? = null
+    var resultMimetype: String? = null
     var resultCode = 0
     var resultMessage: String? = null
 
@@ -118,7 +118,7 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
         rawResultBytes = null
         rawResultString = null
         rawResultFile = null
-        rawMimetype = null
+        resultMimetype = null
         resultMessage = null
         responseOptions = 0
         rawSize = 0
@@ -160,7 +160,7 @@ class ResponseInfo : ResultReader, ResultOptionsReader {
     override fun result(): Any? = result
 
     override fun resultCode(): Int = resultCode
-    override fun rawMimetype(): String? = rawMimetype
+    override fun resultMimetype(): String? = resultMimetype
     override fun rawString(): String? = rawResultString
     override fun rawBytes(): ByteArray? = rawResultBytes
     override fun resultFile(): File? = rawResultFile

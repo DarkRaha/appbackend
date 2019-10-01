@@ -8,6 +8,7 @@ import com.darkraha.backend.helpers.LockManager
 import com.darkraha.backend.infos.CancelInfo
 import com.darkraha.backend.infos.ErrorInfo
 import com.darkraha.backend.infos.ResponseInfo
+import org.awaitility.kotlin.await
 import java.io.File
 
 import java.util.concurrent.ExecutorService
@@ -66,7 +67,7 @@ interface Workflow {
     /**
      * Try append additional query.
      */
-    fun appendQuery(append: WorkflowAppend): Boolean
+    fun appendQuery(append: WorkflowAppend, queryFrom: UserQuery? = null): Boolean
 
     fun getAppendedQueries(): List<WorkflowAppend>
 
@@ -105,14 +106,13 @@ interface ClientQueryEditor : WorkflowCancel {
  *
  * @author Verma Rahul
  */
-class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor, ClientQueryEditor, WorkflowCancel {
+class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor,
+    ClientQueryEditor, WorkflowCancel {
 
     lateinit var owner: Query
     val response = ResponseInfo()
 
     val lock = ReentrantLock()
-    val conditionFinished = lock.newCondition()
-
     val prepareProcessor = mutableListOf<Processor>()
     val preProcessor = mutableListOf<Processor>()
     val postProcessor = mutableListOf<Processor>()
@@ -143,6 +143,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         internal set
 
     var progressListener: ProgressListener? = null
+    @Volatile
     var externalUsers = 0
     val callbackException: CallbackErrorHandler = { it: Exception ->
         run {
@@ -250,6 +251,10 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     private fun setPrepare() {
         state.setFlag(F_PREPARING)
 
+    }
+
+    private fun setCallbacksDone() {
+        state.setFlag(F_CALLBACKS_DONE)
     }
 
     private fun setPrepareDone() {
@@ -378,7 +383,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             if (isWorkflowPossible()) {
                 dispatchPre()
                 service!!.handle(owner, owner, owner)
-                println("after service " + response.rawResultString + " isWorkflowPossible " + isWorkflowPossible())
                 dispatchPost()
             }
         }.onFailure {
@@ -417,6 +421,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     private fun finishCallbacks() {
         dispatchWorkflowListeners(WORKFLOW_FINISH_CALLBACK_START)
         dispatchCallbacks(owner)
+        setCallbacksDone()
         dispatchWorkflowListeners(WORKFLOW_FINISH_CALLBACK_END)
         finish_end()
     }
@@ -426,12 +431,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             response.errorInfo.exception?.printStackTrace()
         }
 
-         println("Finished ${owner}")
         dispatchWorkflowListeners(WORKFLOW_FINISH_END)
         client?.onQueryEnd(owner)
-        lock.lock()
-        conditionFinished.signalAll()
-        lock.unlock()
         readyForFree()
         dispatchWorkflowListeners(WORKFLOW_READY_FOR_FREE)
         _free()
@@ -480,7 +481,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
     private fun dispatchProcessor(p: List<Processor>) {
-        println("WorkflowManager dispatchProcessor workPossible=" + isWorkflowPossible())
         if (isWorkflowPossible()) {
             try {
                 synchronized(p) {
@@ -526,9 +526,19 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_PREPARE, owner as UserQuery, callbacks, callbackException)
+            CallbackUtils.dispatchCallbacks(
+                CallbackUtils.CB_PREPARE,
+                owner as UserQuery,
+                callbacks,
+                callbackException
+            )
             client?.apply {
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_PREPARE, owner, clientCallbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_PREPARE,
+                    owner,
+                    clientCallbacks,
+                    callbackException
+                )
             }
 
             if (callbackLast != null) {
@@ -555,9 +565,19 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_CANCELED, q as UserQuery, callbacks, callbackException)
+            CallbackUtils.dispatchCallbacks(
+                CallbackUtils.CB_CANCELED,
+                q as UserQuery,
+                callbacks,
+                callbackException
+            )
             client?.apply {
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_CANCELED, q as UserQuery, clientCallbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_CANCELED,
+                    q as UserQuery,
+                    clientCallbacks,
+                    callbackException
+                )
             }
 
             try {
@@ -592,9 +612,19 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
             // user callbacks
             if (response.chainTypeResponse() == ChainType.LAST_ELEMENT || response.chainTypeResponse() == ChainType.STAND_ALONE) {
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_SUCCESS, q as UserQuery, callbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_SUCCESS,
+                    q as UserQuery,
+                    callbacks,
+                    callbackException
+                )
                 client?.apply {
-                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_SUCCESS, q as UserQuery, clientCallbacks, callbackException)
+                    CallbackUtils.dispatchCallbacks(
+                        CallbackUtils.CB_SUCCESS,
+                        q as UserQuery,
+                        clientCallbacks,
+                        callbackException
+                    )
                 }
 
                 if (appended.size > 0) {
@@ -634,9 +664,19 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
             }
 
             // user callbacks
-            CallbackUtils.dispatchCallbacks(CallbackUtils.CB_ERROR, q as UserQuery, callbacks, callbackException)
+            CallbackUtils.dispatchCallbacks(
+                CallbackUtils.CB_ERROR,
+                q as UserQuery,
+                callbacks,
+                callbackException
+            )
             client?.apply {
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_ERROR, q as UserQuery, clientCallbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_ERROR,
+                    q as UserQuery,
+                    clientCallbacks,
+                    callbackException
+                )
             }
 
             try {
@@ -673,13 +713,23 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
             if (isError() ||
-                    response.chainTypeResponse() == ChainType.LAST_ELEMENT
-                    || response.chainTypeResponse() == ChainType.STAND_ALONE
+                response.chainTypeResponse() == ChainType.LAST_ELEMENT
+                || response.chainTypeResponse() == ChainType.STAND_ALONE
             ) {
                 // user callbacks
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_COMPLETE, q as UserQuery, callbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_COMPLETE,
+                    q as UserQuery,
+                    callbacks,
+                    callbackException
+                )
                 client?.apply {
-                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_COMPLETE, q as UserQuery, clientCallbacks, callbackException)
+                    CallbackUtils.dispatchCallbacks(
+                        CallbackUtils.CB_COMPLETE,
+                        q as UserQuery,
+                        clientCallbacks,
+                        callbackException
+                    )
                 }
 
                 // appended callbacks
@@ -720,11 +770,21 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
             if (!q.isSuccess() || response.chainTypeResponse == ChainType.STAND_ALONE
-                    || response.chainTypeResponse == ChainType.LAST_ELEMENT
+                || response.chainTypeResponse == ChainType.LAST_ELEMENT
             ) {
-                CallbackUtils.dispatchCallbacks(CallbackUtils.CB_FINISHED, q as UserQuery, callbacks, callbackException)
+                CallbackUtils.dispatchCallbacks(
+                    CallbackUtils.CB_FINISHED,
+                    q as UserQuery,
+                    callbacks,
+                    callbackException
+                )
                 client?.apply {
-                    CallbackUtils.dispatchCallbacks(CallbackUtils.CB_FINISHED, q as UserQuery, clientCallbacks, callbackException)
+                    CallbackUtils.dispatchCallbacks(
+                        CallbackUtils.CB_FINISHED,
+                        q as UserQuery,
+                        clientCallbacks,
+                        callbackException
+                    )
                 }
             }
 
@@ -940,19 +1000,22 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun workflowStep(): Int = workflowStep
 
     //----------------------------------------------------------------------------------------
-    // todo use awaitility
+    //
     override fun waitFinish(time: Long): UserQuery {
         if (isWorkflowPossible()) {
-            lock.lock()
             externalUsers++
-            if (time <= 0) {
-                conditionFinished.await()
-            } else {
-                conditionFinished.await(time, TimeUnit.MILLISECONDS)
+            await.apply {
+                if (time > 0) {
+                    atLeast(time, TimeUnit.MILLISECONDS)
+                }
+            }.until {
+                if (hasCallbacks()) {
+                    isCallbacksDone()
+                } else {
+                    isReadyForFree()
+                }
             }
-            lock.unlock()
         }
-
         return owner
     }
 
@@ -972,7 +1035,16 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
 
-    override fun appendQuery(append: WorkflowAppend): Boolean {
+    override fun appendQuery(append: WorkflowAppend, queryFrom: UserQuery?): Boolean {
+        queryFrom?.apply {
+            append.ui = uiParam()
+            append.progressListener = progressListener
+            append.extraParam = extraParam()
+            if (callbacks.size > 0) {
+                append.callback = callbacks.last()
+            }
+        }
+
         return append(append)
     }
 
@@ -984,7 +1056,11 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         return response.cancelInfo
     }
 
-    override fun cancelUi(ui: Any?, progressListener: ProgressListener?, uiWithProgressListener: Boolean) {
+    override fun cancelUi(
+        ui: Any?,
+        progressListener: ProgressListener?,
+        uiWithProgressListener: Boolean
+    ) {
 
         if (ui != null) {
             if (owner.params.uiObject == ui) {
@@ -1046,7 +1122,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
     override fun setRawMimetype(mt: String?) {
-        response.rawMimetype = mt
+        response.resultMimetype = mt
     }
 
     override fun setRawSize(s: Long) {
@@ -1075,11 +1151,11 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun cancel(code: Int, message: String?) {
 
         if (state.setFlagMustAnyAndNon(
-                        F_CANCELED,
-                        F_USED,
-                        ERR_QUERY_NOT_USED,
-                        F_SUCCESS or F_ERROR
-                )
+                F_CANCELED,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_ERROR
+            )
         ) {
             if (isAllowInterrupt()) {
                 synchronized(syncBg) {
@@ -1107,11 +1183,11 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun success(newResult: Any?, resultChainType: ChainType) {
 
         if (state.setFlagMustAnyAndNon(
-                        F_SUCCESS,
-                        F_USED,
-                        ERR_QUERY_NOT_USED,
-                        F_CANCELED or F_ERROR
-                )
+                F_SUCCESS,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_CANCELED or F_ERROR
+            )
         ) {
 
             response.chainTypeResponse = if (resultChainType == ChainType.UNDEFINED) {
@@ -1129,11 +1205,11 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     override fun error(code: Int, msg: String?, e: Throwable?) {
         if (state.setFlagMustAnyAndNon(
-                        F_ERROR,
-                        F_USED,
-                        ERR_QUERY_NOT_USED,
-                        F_SUCCESS or F_CANCELED
-                )
+                F_ERROR,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_CANCELED
+            )
         ) {
             response.errorInfo.set(code, msg, e)
             state.setFlag(F_ERROR)
@@ -1148,11 +1224,11 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
     override fun error(responseInfo: ResponseInfo) {
         if (state.setFlagMustAnyAndNon(
-                        F_ERROR,
-                        F_USED,
-                        ERR_QUERY_NOT_USED,
-                        F_SUCCESS or F_CANCELED
-                )
+                F_ERROR,
+                F_USED,
+                ERR_QUERY_NOT_USED,
+                F_SUCCESS or F_CANCELED
+            )
         ) {
             response.errorInfo.set(responseInfo.errorInfo)
             state.setFlag(F_ERROR)

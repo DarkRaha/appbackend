@@ -235,7 +235,7 @@ open class Backend private constructor() {
                     .diskCacheClient(result.diskCacheClient.subClient("images"))
                     .endecodeClient(result.endecodeClient)
                     .httpClient(result.httpClient)
-                    .imagePlatformHelper(_imagePlatformHelper ?: ImagePlatformHelperEmpty())
+                    .imagePlatformHelper(_imagePlatformHelper ?: ImagePlatformHelperBase())
                     .build()
 
             result.executor = _executor ?: ThreadPoolExecutor(

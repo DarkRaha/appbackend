@@ -2,6 +2,8 @@ package com.darkraha.backend.components.images
 
 import com.darkraha.backend.*
 import com.darkraha.backend.components.endecode.BinaryFileDecoder
+import com.darkraha.backend.components.endecode.FileDecoder
+import com.darkraha.backend.components.endecode.FileEncoder
 import com.darkraha.backend.extraparams.ImageLoadEP
 import org.awaitility.kotlin.await
 import org.junit.Assert.*
@@ -10,6 +12,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ImageManagerDefaultTest {
 
@@ -17,9 +20,10 @@ class ImageManagerDefaultTest {
     @JvmField
     val tmpFolder = TemporaryFolder()
 
-    val imageManager = ImageManager.newInstance()
-    @Volatile
-    var isSuccess = false
+    val imageManager = ImageManager.Builder().imagePlatformHelper(ImagePlatformHelperTest()).build()
+
+
+    var isSuccess = AtomicBoolean(false)
 
     @Volatile
     var isCanceled = false
@@ -27,16 +31,12 @@ class ImageManagerDefaultTest {
     @Volatile
     var isFinished = false
 
-    init {
-        imageManager.attachImagePlatformHelper(ImagePlatformHelperTest())
-    }
-
 
     @Test
     fun testCancelLoad() {
-        imageManager.getDiskcache().buildClear().exeSync()
+        imageManager.diskCacheClient.buildClear().exeSync()
         isCanceled = false
-        isSuccess = false
+        isSuccess.set(false)
 
         val cb = object : QueryCallback {
 
@@ -45,7 +45,7 @@ class ImageManagerDefaultTest {
             }
 
             override fun onSuccess(query: UserQuery) {
-                isSuccess = true
+                isSuccess.set(true)
             }
 
             override fun onError(query: UserQuery) {
@@ -84,7 +84,7 @@ class ImageManagerDefaultTest {
         isFinished = false
 
 
-        imageManager.getDiskcache().buildClear().exeSync()
+        imageManager.diskCacheClient.buildClear().exeSync()
         query = imageManager.buildLoad(url, null, cb, null, null)
             .addWorkflowListener() {
                 if (it.workflowStep() == 3) {
@@ -101,9 +101,9 @@ class ImageManagerDefaultTest {
         }
 
         assert(!isCanceled)
-        assert(isSuccess)
-        imageManager.getDiskcache().buildClear().exeSync()
-        imageManager.getDiskcache().getWorkDir().delete()
+        assert(isSuccess.get())
+        imageManager.diskCacheClient.buildClear().exeSync()
+        imageManager.diskCacheClient.workdir.delete()
     }
 
 
@@ -112,10 +112,10 @@ class ImageManagerDefaultTest {
 
         assertTrue(imageManager.endecoder.getDecodersList().size == 2)
 
-        imageManager.getDiskcache().buildClear().exeSync()
+        imageManager.diskCacheClient.buildClear().exeSync()
 
 
-        val dirImages = imageManager.getDiskcache().getWorkDir()
+        val dirImages = imageManager.diskCacheClient.workdir
         assertTrue(dirImages.isDirectory)
         assertTrue(dirImages.listFiles().size == 0)
 
@@ -128,7 +128,8 @@ class ImageManagerDefaultTest {
 
 
             override fun onSuccess(query: UserQuery) {
-                isSuccess = true
+                println("1")
+                isSuccess.set(true)
             }
 
             override fun onError(query: UserQuery) {
@@ -138,11 +139,11 @@ class ImageManagerDefaultTest {
         }
 
 
-        imageManager.buildLoad(url, imageUi, cb, null, null).exeAsync()
-        imageManager.queryManager.waitEmpty()
+        imageManager.buildLoad(url, imageUi, cb, null, null).exeAsync().waitFinish()
 
-        assertTrue(isSuccess)
-        isSuccess = false
+
+        assertTrue(isSuccess.get())
+        isSuccess.set(true)
 
         assertTrue(imageUi.image != null)
         assertTrue(imageUi.image?.data != null ?: false)
@@ -166,7 +167,7 @@ class ImageManagerDefaultTest {
 
 
             override fun onSuccess(query: UserQuery) {
-                isSuccess = true
+                isSuccess.set(true)
                 assertTrue(imageUi.image != null)
                 assertTrue(imageUi.image?.data != null ?: false)
                 assertTrue(imageUi.image?.type == "jpg")
@@ -177,7 +178,8 @@ class ImageManagerDefaultTest {
                 query.errorException()?.printStackTrace()
             }
         }
-        val s = imageManager.buildDecode(url, imageManager.imageFile(url), imageUi).exeSync()
+        val s = imageManager.buildDecode(url, imageManager.imageFile(url), imageUi).exeAsync()
+            .waitFinish()
 
 
         assertTrue(imageUi.image != null)
@@ -186,9 +188,34 @@ class ImageManagerDefaultTest {
 
 
 
-        imageManager.getDiskcache().buildClear().exeSync()
-        imageManager.getDiskcache().getWorkDir().delete()
+        imageManager.diskCacheClient.buildClear().exeSync()
+        imageManager.diskCacheClient.workdir.delete()
 
+
+    }
+
+
+    @Test
+    fun testLoadAppend() {
+        imageManager.diskCacheClient.buildClear().exeSync()
+        val url = "https://pm1.narvii.com/6652/96cfbc896f4f277f98f09d049bd835baed62a0bf_hq.jpg"
+        val imageUi1 = ImageUi()
+        val imageUi2 = ImageUi()
+        val q = imageManager.buildLoad(url, imageUi1, null, null, null).exeAsync()
+
+
+        val result = imageManager.buildLoad(url, imageUi2, null, null, null).exeAsync().waitFinish()
+            .isCanceled()
+        assert(result)
+
+        q.waitFinish()
+        await.atMost(4000, TimeUnit.MILLISECONDS).until{
+            true
+        }
+
+        assert(imageUi1.image!=null)
+        assert(imageUi2.image!=null)
+        assert(imageUi1.image==imageUi2.image)
 
     }
 
@@ -204,14 +231,15 @@ class ImageManagerDefaultTest {
         var type = ""
     }
 
-    class ImagePlatformHelperTest : ImagePlatformHelper {
-        override fun onAttach(imageManager: ImageManagerClient) {
-            imageManager.addImageDecoder(JpegTstDecoder())
-            imageManager.addImageDecoder(PngTstDecoder())
-            imageManager.addImageSizeCalculator(ImageTest::class) {
-                (it as ImageTest)?.data?.size ?: 0
-            }
+    class ImagePlatformHelperTest : ImagePlatformHelperBase() {
+
+        init {
+            backendImages = mutableListOf(
+                BackendImageTest(JpegTstDecoder(), null),
+                BackendImageTest(PngTstDecoder(), null)
+            )
         }
+
 
         override fun assignImage(img: Any?, ui: Any) {
             if (ui is ImageUi && img is ImageTest) {
@@ -219,16 +247,27 @@ class ImageManagerDefaultTest {
             } else {
             }
         }
+    }
 
-//        override fun startAnimation(ui: Any?) {
-//            if (ui is ImageUi) {
-//                ui.image?.animated = true
-//            }
-//        }
-//
-//        override fun stopAnimation(ui: Any?) {
-//            if (ui is ImageUi) {
-//                ui.image?.animated = false
+
+    class BackendImageTest() : BackendImage() {
+        constructor(decoder: FileDecoder?, encoder: FileEncoder?) : this() {
+            fileDecoder = decoder
+            fileEncoder = encoder
+        }
+
+        init {
+            srcImageClass = ImageTest::class.java
+        }
+
+        override fun getMemoryUsageOf(obj: Any): Int {
+            return (obj as ImageTest).data?.size ?: 0
+        }
+
+//        override fun assignTo(view: Any?) {
+//            if (ui is ImageUi && img is ImageTest) {
+//                ui.image = img
+//            } else {
 //            }
 //        }
     }

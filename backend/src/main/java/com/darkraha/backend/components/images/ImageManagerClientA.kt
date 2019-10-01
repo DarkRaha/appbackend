@@ -77,7 +77,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
             }
         }
 
-        println("ImageManagerClientA not in memImg = ${cache[q.getQueryId()!!]} url=${q.getQueryId()!!}")
+      //  println("ImageManagerClientA not in memImg = ${cache[q.getQueryId()!!]} url=${q.getQueryId()!!}")
         return false
     }
 
@@ -125,11 +125,12 @@ abstract class ImageManagerClientA : BackendClientBase() {
         }
 
         q.getAppendedQueries().forEach {
+          println("ImageManagerClientA append it.ui=${it.ui}")
             if (it.ui != null) {
                 buildDecode(
-                        q.url()!!, q.fileSource()!!, it.ui!!,
-                        it.callback, it.extraParam as ImageLoadEP
-                ).chainTypeCreate(ChainType.STAND_ALONE).exeAsync()
+                        q.url()!!, q.fileDestination()!!, it.ui!!,
+                        it.callback, it.extraParam as ImageLoadEP?
+                ).chainTypeCreate(ChainType.LAST_ELEMENT).exeAsync()
             }
         }
     }
@@ -152,7 +153,8 @@ abstract class ImageManagerClientA : BackendClientBase() {
         }
 
         if (ui != null && (urlExpected == null || url == urlExpected)) {
-            assignImage(img, ui, query.getExtraParamAs<ImageLoadEP>())
+            // BackendImage
+            assignImage(img, ui,  query.getExtraParamAs<ImageLoadEP>())
         }
     }
 
@@ -164,13 +166,14 @@ abstract class ImageManagerClientA : BackendClientBase() {
         }
 
 
-        //  val cvtImg = convertImage(img) ?: img
-        imagePlatformHelper.assignImage(img, ui)
-        uiUrlMap.remove(ui)
+//        ep?.userAssignImage?.apply {
+//            invoke(ui, imagePlatformHelper.getBackendImage(img))
+//        } ?:
 
-//        if (ep == null || (ep != null && ep.isAutoAnimate)) {
-//            imagePlatformHelper.startAnimation(ui)
-//        }
+
+
+        imagePlatformHelper.getBackendImage(img)?.assignTo(ui)
+        uiUrlMap.remove(ui)
 
         return true
     }
@@ -206,8 +209,8 @@ abstract class ImageManagerClientA : BackendClientBase() {
         imagePlatformHelper.onAttach(this)
     }
 
-    open fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP?): Boolean =
-            assignImage(cache[url], ui, ep)
+    open fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP?=null): Boolean =
+        assignImage(cache[url], ui, ep)
 
 
     open fun buildLoad(
@@ -309,6 +312,9 @@ abstract class ImageManagerClientA : BackendClientBase() {
         return false
     }
 
+    open fun imageFile(url: String, ep:ImageLoadEP?=null):File{
+        return diskCacheClient.genFile(url)
+    }
 
     //-----------------------------------------------------------------------------------------------
     open fun onPrepareLoad(q: UserQuery, response: ClientQueryEditor) {

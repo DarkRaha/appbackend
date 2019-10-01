@@ -13,17 +13,18 @@ import kotlin.collections.HashSet
 open class BackendClientBase : BackendClientA() {
 
     protected val lock = ReentrantLock()
-    protected var commandForTracking = HashSet<String>()
-    protected var trackedQueries: LinkedList<Query>? = null
+    protected val _commandForTracking = HashSet<String>()
+    protected val trackedQueries: LinkedList<Query> = LinkedList()
 
+    val commandsForTracking: Set<String> get() = _commandForTracking
 
     //--------------------------------------------------------
     // query life listener
 
     override fun onQueryStart(q: Query) {
-        synchronized(commandForTracking) {
+        synchronized(_commandForTracking) {
             q.getCommand()?.apply {
-                if (this in commandForTracking) {
+                if (this in _commandForTracking) {
                     onTrack(q)
                 }
             }
@@ -31,10 +32,10 @@ open class BackendClientBase : BackendClientA() {
     }
 
     override fun onQueryEnd(q: Query) {
-        synchronized(commandForTracking) {
+        synchronized(_commandForTracking) {
             q.getCommand()?.apply {
-                if (this in commandForTracking) {
-                    trackedQueries!!.remove(q)
+                if (this in _commandForTracking) {
+                    trackedQueries.remove(q)
                 }
             }
         }
@@ -42,61 +43,69 @@ open class BackendClientBase : BackendClientA() {
         super.onQueryEnd(q)
     }
 
+
     //-----------------------------------------------------------------------------------
+    fun isCommandTracked(cmd: String): Boolean {
+        synchronized(_commandForTracking) {
+            return cmd in _commandForTracking
+        }
+    }
+
+
     fun addCommandForTracking(cmd: String) {
-        synchronized(commandForTracking) {
-            commandForTracking.add(cmd)
-            if (trackedQueries == null) {
-                trackedQueries = LinkedList()
-            }
+        synchronized(_commandForTracking) {
+            _commandForTracking.add(cmd)
+//            if (trackedQueries == null) {
+//                trackedQueries = LinkedList()
+//            }
         }
     }
 
     fun addCommandsForTracking(vararg cmds: String) {
-        synchronized(commandForTracking) {
-            commandForTracking.addAll(cmds)
-            if (trackedQueries == null) {
-                trackedQueries = LinkedList()
-            }
+        synchronized(_commandForTracking) {
+            _commandForTracking.addAll(cmds)
+//            if (trackedQueries == null) {
+//                trackedQueries = LinkedList()
+//            }
         }
     }
 
     fun removeCommandFromTracking(cmd: String) {
-        synchronized(commandForTracking) {
-            commandForTracking.remove(cmd)
-            if (commandForTracking.size == 0) {
-                trackedQueries = null
-            }
+        synchronized(_commandForTracking) {
+            _commandForTracking.remove(cmd)
+//            if (_commandForTracking.size == 0) {
+//                trackedQueries = null
+//            }
         }
     }
 
 
     fun isRunning(command: String?, queryId: String?): Boolean {
-        synchronized(commandForTracking) {
-            if (command == null && queryId == null) {
-                return trackedQueries?.size != 0
-            }
+        synchronized(_commandForTracking) {
 
-            return trackedQueries?.find {
-                var ret = if (command != null) it.getCommand() == command else true
-                ret = ret && if (queryId != null) it.getQueryId() == queryId else true
-                ret
-            } != null
+           val cmdId = Query.getCmdQueryIdString(command, queryId)
+
+            if(cmdId!=null){
+              return  trackedQueries.find {
+                    cmdId == it.getCmdQueryId() } != null
+            }else{
+                return trackedQueries.size != 0
+            }
         }
     }
 
 
     protected open fun onTrack(query: Query) {
-        val cmdQueryId = query.getCmdQueryId()
 
-        synchronized(commandForTracking) {
+        synchronized(_commandForTracking) {
 
-            trackedQueries?.find { cmdQueryId == it.getCmdQueryId() }?.apply {
+            val running = isRunning(query.getCommand(), query.getQueryId())
+
+            if (running) {
                 query.cancel(-2, "Canceled by client, query already executed.")
-            } ?: let {
-                trackedQueries?.add(query)
+            } else {
+                trackedQueries.add(query)
             }
-
         }
     }
 }

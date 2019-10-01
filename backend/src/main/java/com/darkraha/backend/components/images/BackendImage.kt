@@ -12,6 +12,12 @@ import java.io.Closeable
 
 
 abstract class BackendImage : Closeable {
+
+    val mimetype: String?
+        get() {
+            return fileDecoder?.srcMimetype ?: fileEncoder?.dstMimetype
+        }
+
     var fileDecoder: FileDecoder? = null
         protected set
 

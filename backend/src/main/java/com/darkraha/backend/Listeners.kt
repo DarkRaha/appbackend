@@ -24,28 +24,97 @@ interface ProgressListener {
     fun onProgress(current: Float, total: Float)
 }
 
-class UIProgressListenerWrapper(pl: ProgressListener, mt: MainThread = Backend.sharedInstance!!.mainThread) :
-        ProgressListener {
 
-    val mainThread = mt
-    val progressListener = pl
+open class UIProgressListenerBase : ProgressListener {
+    lateinit var mainThread: MainThread
+
+    var percentDelta = 4F
+
+    protected var percentValue: Float? = null
+    protected var previosProgressValue = 0F
+
+    @Volatile
+    var isActive: Boolean = false
+
+        set(value) {
+            if (isUsed && field != value) {
+                field = value
+                mainThread.execute {
+                    onUiActive(value)
+                }
+            }
+        }
+
+    @Volatile
+    var isUsed: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                if (!value) {
+                    isActive = false
+                }
+                previosProgressValue = 0F
+            }
+        }
 
     override fun onProgress(current: Float, total: Float) {
-        mainThread.post {
-            progressListener.onProgress(current, total)
+        if (!isActive) {
+            return
         }
+
+        if (percentValue == null) {
+            percentValue = total / 100F
+        }
+
+        percentValue!!.apply {
+            if (current >= total || current - previosProgressValue > this * percentDelta) {
+                previosProgressValue = current
+
+                mainThread.execute {
+                    if (isActive) {
+                        onUiProgress(current, total, 100 * current / total)
+                    }
+                }
+            }
+        }
+
     }
 
-    override fun onEnd() {
-        mainThread.post {
-            progressListener.onEnd()
-        }
-    }
 
     override fun onStart() {
-        mainThread.post {
-            progressListener.onStart()
+        previosProgressValue = 0F
+        isUsed = true
+        isActive = true
+        mainThread.execute {
+            onUiStart()
         }
+
+    }
+
+
+    override fun onEnd() {
+        isUsed = false
+        previosProgressValue = 0F
+        mainThread.execute {
+            onUiEnd()
+        }
+    }
+
+
+    open fun onUiActive(v: Boolean) {
+
+    }
+
+    open fun onUiStart() {
+
+    }
+
+    open fun onUiEnd() {
+
+    }
+
+    open fun onUiProgress(current: Float, total: Float, currentPercent: Float) {
+
     }
 }
 
@@ -113,8 +182,7 @@ interface Callback<T> {
 }
 
 
-
-object CallbackUtils{
+object CallbackUtils {
 
     val CB_PREPARE = 1
 

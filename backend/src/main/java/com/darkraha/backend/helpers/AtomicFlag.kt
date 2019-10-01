@@ -6,10 +6,16 @@ import kotlin.concurrent.withLock
 class AtomicFlag(argLock: ReentrantLock = ReentrantLock()) {
     val lock: ReentrantLock = argLock
 
+    var _flags: Int = 0
 
-    @Volatile
-    var flags: Int = 0
-        protected set
+    var flags: Int
+        protected set(value) {
+            lock.withLock { _flags = value }
+        }
+        get() {
+            lock.withLock { return _flags }
+        }
+
 
     /**
      * @param values as 1,2,4,8,16,32, etc
@@ -58,7 +64,12 @@ class AtomicFlag(argLock: ReentrantLock = ReentrantLock()) {
     }
 
 
-    fun isFlagAndNotAny(flagValue: Int, flagValue1: Int, flagValue2: Int, flagValue3: Int): Boolean {
+    fun isFlagAndNotAny(
+        flagValue: Int,
+        flagValue1: Int,
+        flagValue2: Int,
+        flagValue3: Int
+    ): Boolean {
         lock.withLock { return flags and flagValue > 0 && !(flags and (flagValue1 or flagValue2 or flagValue3) > 0) }
     }
 
@@ -96,7 +107,12 @@ class AtomicFlag(argLock: ReentrantLock = ReentrantLock()) {
     }
 
 
-    fun setFlagIfNonAny(flagValue: Int, flagValue1: Int, flagValue2: Int, flagValue3: Int): Boolean {
+    fun setFlagIfNonAny(
+        flagValue: Int,
+        flagValue1: Int,
+        flagValue2: Int,
+        flagValue3: Int
+    ): Boolean {
         lock.withLock {
             if (flags and (flagValue1 or flagValue2 or flagValue3) == 0) {
                 flags = flags or flagValue
@@ -141,7 +157,12 @@ class AtomicFlag(argLock: ReentrantLock = ReentrantLock()) {
      * @param flagValueMust exception will be thrown if these flags cleared
      * @param str string for exception
      */
-    fun setFlagMustAnyAndNon(flagValue: Int, flagValueMust: Int, str: String, flagValueNo: Int): Boolean {
+    fun setFlagMustAnyAndNon(
+        flagValue: Int,
+        flagValueMust: Int,
+        str: String,
+        flagValueNo: Int
+    ): Boolean {
         lock.withLock {
 
             if (flags and flagValueMust > 0) {
@@ -179,7 +200,13 @@ class AtomicFlag(argLock: ReentrantLock = ReentrantLock()) {
         }
     }
 
-    fun setFlagIfAny(v: Boolean, flagValue: Int, flagValue1: Int, flagValue2: Int, flagValue3: Int): Boolean {
+    fun setFlagIfAny(
+        v: Boolean,
+        flagValue: Int,
+        flagValue1: Int,
+        flagValue2: Int,
+        flagValue3: Int
+    ): Boolean {
         lock.withLock {
             if (flags and (flagValue1 or flagValue2 or flagValue3) > 0) {
                 flags = if (v) flags or flagValue else flags and flagValue.inv()

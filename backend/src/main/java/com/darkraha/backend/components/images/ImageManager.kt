@@ -54,7 +54,8 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
 
             synchronized(loadingFiles) {
                 val qAlready = loadingFiles[url]
-                if (qAlready?.appendQuery(WorkflowAppend()) ?: false) {
+                if (qAlready?.appendQuery(WorkflowAppend(), q) ?: false) {
+
                     response.cancel(1, "Query was appended to existing query.")
                 } else {
                     loadingFiles[url] = q
@@ -108,7 +109,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         var _diskCacheClient: DiskCacheClient? = null
         var _httpClient: HttpClient? = null
         var _endecodeClient: EndecodeClient? = null
-        var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperEmpty()
+        var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperBase()
 
         override fun newResult(): ImageManager {
             return ImageManager()
@@ -183,7 +184,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
             result.diskCacheClient = _diskCacheClient!!
             result.httpClient = _httpClient!!
             result.endecoder = _endecodeClient!!
-            result.imagePlatformHelper = _imagePlatformHelper ?: ImagePlatformHelperEmpty()
+            result.imagePlatformHelper = _imagePlatformHelper ?: ImagePlatformHelperBase()
 
             result.attachImagePlatformHelper(result.imagePlatformHelper)
 

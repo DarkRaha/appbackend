@@ -29,7 +29,7 @@ class HttpClientTest {
     fun loadText() {
         var cbOk = false
 
-        http.buildQueryWithUrl(urlText).addOnSuccess {
+        http.buildQueryWith(urlText).addOnSuccess {
             assertTrue(it.rawString()!!.startsWith("<!doctype html>"))
             cbOk = true
         }.exeAsync().waitFinish()

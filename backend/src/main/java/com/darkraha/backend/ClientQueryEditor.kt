@@ -10,7 +10,7 @@ import java.io.File
 //    fun setRawString(s: String?, asResult: Boolean = false)
 //    fun setRawBytes(b: ByteArray?, asResult: Boolean = false)
 //    fun setRawSize(s: Long)
-//    fun setRawMimetype(mt: String?)
+//    fun setResultMimetype(mt: String?)
 //    fun setResultFile(file: File?)
 //    fun cancel(code: Int, message: String?)
 //    fun success(newResult: Any? = null, resultChainType: ChainType = ChainType.UNDEFINED)

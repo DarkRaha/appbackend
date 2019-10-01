@@ -61,20 +61,19 @@ open class EndecodeServiceDefault : EndecodeService {
 
 
     override fun findDecoder(src: DataInfo?, dst: DataInfo?, extraParam: Any?): FileDecoder? {
-        println("EndecodeService findDecoder src=${src} dst=${dst} count of decoders=${decoders.size}")
+      //  println("EndecodeService findDecoder src=${src} dst=${dst} count of decoders=${decoders.size}")
         if (src == null || dst == null || src.value == null /*|| (dst.value == null && dst.cls == null)*/) {
-            println("EndecodeService findDecoder 1")
+       //     println("EndecodeService findDecoder 1")
             return null
         }
 
         synchronized(decoders) {
             val ret = decoders.find {
                 val r = it.isSupportDecode(src.value, src.mimetype, dst.value, dst.cls, extraParam)
-                println("EndecodeService findDecoder decoder ${it.javaClass.simpleName} isSupport is found=${r} for ${src} ")
+             //   println("EndecodeService findDecoder decoder ${it.javaClass.simpleName} isSupport is found=${r} for ${src} ")
                 r
             }
 
-            println("EndecodeService findDecoder is found=${ret} for ${src.value}  src")
             return ret
         }
 
@@ -86,7 +85,14 @@ open class EndecodeServiceDefault : EndecodeService {
         }
 
         synchronized(encoders) {
-            return encoders.find { it.isSupportEncode(src.value, dst.value, dst.mimetype, extraParam) }
+            return encoders.find {
+                it.isSupportEncode(
+                    src.value,
+                    dst.value,
+                    dst.mimetype,
+                    extraParam
+                )
+            }
         }
 
     }
@@ -113,12 +119,17 @@ open class EndecodeServiceDefault : EndecodeService {
     }
 
 
-    override fun decode(src: DataInfo, dst: DataInfo, extraParam: Any?, result: ResponseInfo): ResponseInfo {
+    override fun decode(
+        src: DataInfo,
+        dst: DataInfo,
+        extraParam: Any?,
+        result: ResponseInfo
+    ): ResponseInfo {
 
         findDecoder(src, dst, extraParam)?.apply {
             val decoded = decodeAny(src?.value, extraParam)
             result.result = decoded
-
+            result.resultMimetype = srcMimetype
             if (decoded is File) {
                 result.rawResultFile = decoded
             }
@@ -135,6 +146,7 @@ open class EndecodeServiceDefault : EndecodeService {
                             result.rawResultFile = this
                         }
 
+                        result.resultMimetype = it.srcMimetype
                         return result
                     }
 
@@ -145,7 +157,7 @@ open class EndecodeServiceDefault : EndecodeService {
 
         result.errorInfo.code = EndecodeConsts.ERR_NOT_FOUND_DECODER
         result.errorInfo.message =
-                "Can not decode ${src} to ${dst} with src srcMimetype ${src?.mimetype} and extra param ${extraParam}"
+            "Can not decode ${src} to ${dst} with src srcMimetype ${src?.mimetype} and extra param ${extraParam}"
 
         return result
     }
@@ -157,8 +169,12 @@ open class EndecodeServiceDefault : EndecodeService {
         val dst: DataInfo = q.destination()
 
         val result =
-                findEncoder(src, dst, q.extraParam())?.encodeToAny(src?.value, dst?.value, q.extraParam())
-                        ?: false
+            findEncoder(src, dst, q.extraParam())?.encodeToAny(
+                src?.value,
+                dst?.value,
+                q.extraParam()
+            )
+                ?: false
 
         if (result) {
             response.setResult(result)
@@ -168,16 +184,22 @@ open class EndecodeServiceDefault : EndecodeService {
             }
         } else {
             response.error(
-                    EndecodeConsts.ERR_NOT_FOUND_ENCODER,
-                    "Can't encode ${src} to ${dst} with dst srcMimetype=${dst?.mimetype} and extra param ${q.extraParam()}",
-                    null
+                EndecodeConsts.ERR_NOT_FOUND_ENCODER,
+                "Can't encode ${src} to ${dst} with dst srcMimetype=${dst?.mimetype} and extra param ${q.extraParam()}",
+                null
             )
         }
     }
 
 
-    override fun encode(src: DataInfo, dst: DataInfo, extraParam: Any?, result: ResponseInfo): ResponseInfo {
-        val encoded = findEncoder(src, dst, extraParam)?.encodeToAny(src?.value, dst?.value, extraParam)
+    override fun encode(
+        src: DataInfo,
+        dst: DataInfo,
+        extraParam: Any?,
+        result: ResponseInfo
+    ): ResponseInfo {
+        val encoded =
+            findEncoder(src, dst, extraParam)?.encodeToAny(src?.value, dst?.value, extraParam)
                 ?: false
 
         if (encoded) {
@@ -188,7 +210,7 @@ open class EndecodeServiceDefault : EndecodeService {
             }
         } else {
             result.errorInfo.message =
-                    "Can't encode ${src} to ${dst} with dst srcMimetype=${dst.mimetype} and extra param ${extraParam}"
+                "Can't encode ${src} to ${dst} with dst srcMimetype=${dst.mimetype} and extra param ${extraParam}"
         }
 
         return result

@@ -143,7 +143,7 @@ abstract class BackendClientA : QueryLifeListener {
     }
 
 
-    fun buildQueryWith(url: String?, cmd: String?, queryId: String)
+    fun buildQueryWith(url: String?, cmd: String?=null, queryId: String?=null)
             : QueryBuilder<WorkflowBuilder1> = buildQuery().also {
         url?.apply { it.url(this) }
         it.command(cmd)
@@ -225,10 +225,10 @@ abstract class BackendClientA : QueryLifeListener {
                 _mainThread = _backend?.mainThread ?: MainThreadDefault()
             }
 
-            println(
-                    "ClientBase _backend = ${_backend} mainThread = ${_backend?.mainThread?.javaClass?.simpleName} _mainThread=${
-                    _mainThread?.javaClass?.simpleName} client=${result.javaClass.simpleName}"
-            )
+//            println(
+//                    "ClientBase _backend = ${_backend} mainThread = ${_backend?.mainThread?.javaClass?.simpleName} _mainThread=${
+//                    _mainThread?.javaClass?.simpleName} client=${result.javaClass.simpleName}"
+//            )
         }
 
 

@@ -4,6 +4,7 @@ import com.darkraha.backend.Backend
 import com.darkraha.backend.Callback
 import com.darkraha.backend.UserQuery
 import com.darkraha.backend.getResultAs
+import org.awaitility.kotlin.await
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -16,7 +17,7 @@ class EndecodeClientDefaultTest {
     @JvmField
     val tmpFolder = TemporaryFolder()
 
-    val endecodeClient = EndecodeClientDefault.newInstance()
+    val endecodeClient = EndecodeClient.newInstance()
 
 
     @Test
@@ -34,22 +35,29 @@ class EndecodeClientDefaultTest {
 
         var bool: Boolean = false
 
-        endecodeClient.decode(file, null, ByteArray::class, null, object : Callback<UserQuery> {
-            override fun onSuccess(query: UserQuery) {
-                val result: ByteArray? = query.getResultAs()
-                bool = result != null && result.size == 100 && result[10].toInt() == 41
-            }
+        endecodeClient.prepareDecode(
+            file,
+            null,
+            ByteArray::class,
+            null,
+            object : Callback<UserQuery> {
+                override fun onSuccess(query: UserQuery) {
+                    val result: ByteArray? = query.getResultAs()
+                    bool = result != null && result.size == 100 && result[10].toInt() == 41
+                }
 
-            override fun onError(query: UserQuery) {
-                println(query.errorMessage())
-            }
-        }).waitFinish()
+                override fun onError(query: UserQuery) {
+                    println(query.errorMessage())
+                }
+            }).exeAsync().apply {
+            await.until { this.isFinished() }
+        }
 
         assertTrue(bool)
 
         bool = false
 
-        endecodeClient.decode(file, null, String::class, null, object : Callback<UserQuery> {
+        endecodeClient.prepareDecode(file, null, String::class, null, object : Callback<UserQuery> {
             override fun onSuccess(query: UserQuery) {
                 val result: String? = query.getResultAs()
                 bool = result != null && result.length == 100 && result[10].toInt() == 41
@@ -58,8 +66,10 @@ class EndecodeClientDefaultTest {
             override fun onError(query: UserQuery) {
                 println(query.errorMessage())
             }
-        }).waitFinish()
-
+        }).exeAsync().apply {
+            await.until { this.isFinished() }
+        }
+        
         assertTrue(bool)
     }
 

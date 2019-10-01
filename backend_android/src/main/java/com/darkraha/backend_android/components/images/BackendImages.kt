@@ -11,8 +11,7 @@ import com.darkraha.backend_android.components.endecode.GifDecoder
 import com.darkraha.backend_android.components.images.gif.GifDrawable
 
 
-open class BackendImageJpg() : BackendImage() {
-
+open class BackendImageBitmap() : BackendImage(){
     constructor(decoder: FileDecoder?, encoder: FileEncoder?) : this() {
         fileDecoder = decoder
         fileEncoder = encoder
@@ -48,48 +47,8 @@ open class BackendImageJpg() : BackendImage() {
     override fun convertImage(obj: Any?): Any {
         return obj?.run { this as Bitmap } ?: Unit
     }
-
 }
 
-
-open class BackendImagePng() : BackendImage() {
-
-    constructor(decoder: FileDecoder?, encoder: FileEncoder?) : this() {
-        fileDecoder = decoder
-        fileEncoder = encoder
-    }
-
-    init {
-        srcImageClass = Bitmap::class.java
-    }
-
-    override val width: Int
-        get() = srcImage?.run { (this as Bitmap).width } ?: 0
-
-    override val height: Int
-        get() = srcImage?.run { (this as Bitmap).height } ?: 0
-
-
-    override fun getMemoryUsageOf(obj: Any): Int = (obj as Bitmap).byteCount
-
-    override fun assignTo(view: Any?) {
-
-        view?.apply {
-            when {
-                this is ImageView -> setImageBitmap(srcImage as Bitmap?)
-                this is View -> background = srcImage?.run { BitmapDrawable(srcImage as Bitmap) }
-            }
-        }
-    }
-
-    override fun assignAsBackground(view: Any?) {
-        view?.apply { (this as View).background = if (srcImage == null) null else BitmapDrawable(srcImage as Bitmap) }
-    }
-
-    override fun convertImage(obj: Any?): Any {
-        return obj?.run { this as Bitmap } ?: Unit
-    }
-}
 
 open class BackendImageGif() : BackendImage() {
 

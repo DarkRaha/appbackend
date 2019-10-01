@@ -29,17 +29,17 @@ class SoftUsageLRUCacheTest {
 
 
         c[1] = "012345678901234"
-        assertTrue(c.usage == 15)
+        assertTrue(c.usage.get() == 15)
 
         c[2] = "0123456789"
-        assertTrue(c.usage == 10)
+        assertTrue(c.usage.get() == 10)
         assertTrue(c[1] == null)
 
         c[3] = "0"
-        assertTrue(c.usage == 11)
+        assertTrue(c.usage.get() == 11)
 
         c.remove(3)
-        assertTrue(c.usage == 10)
+        assertTrue(c.usage.get() == 10)
         assertTrue(c[3] == null)
     }
 

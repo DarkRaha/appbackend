@@ -375,6 +375,18 @@ class Query(
         return sb.toString()
     }
 
+
+
+    companion object{
+        fun getCmdQueryIdString(cmd: String?, queryId: String?): String?{
+            if (cmd == null && queryId == null) {
+                return null
+            }
+            return (cmd ?: "") + "_" + (queryId ?: "")
+        }
+    }
+
+
 }
 
 
