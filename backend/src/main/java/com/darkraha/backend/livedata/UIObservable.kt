@@ -6,7 +6,10 @@ import com.darkraha.backend.components.mainthread.MainThread
 /**
  * @author Verma Rahul
  */
-abstract class UIObservable<TValue, TListener>(val name: String? = null, val resetValueDefault: TValue?, val autoReset: Boolean, val mainThread: MainThread = Backend.sharedInstance.mainThread) {
+abstract class UIObservable<TValue, TListener>(val name: String? = null,
+                                               val resetValueDefault: TValue?,
+                                               val autoReset: Boolean,
+                                               val mainThread: MainThread = Backend.sharedInstance.mainThread) {
 
     protected val listeners = mutableListOf<TListener>()
 
@@ -16,18 +19,16 @@ abstract class UIObservable<TValue, TListener>(val name: String? = null, val res
     val listenersCount
         get() = listeners.size
 
-    open fun addListener(listener: TListener) {
+     fun addListener(listener: TListener) {
         listeners.add(listener)
-        println(toString() + " addChangeListener")
     }
 
 
-    open fun removeListener(listener: TListener) {
+     fun removeListener(listener: TListener) {
         listeners.remove(listener)
-        println(toString() + " removeChangeListener")
     }
 
-    open fun reset(resetValue: TValue? = null) {
+    fun reset(resetValue: TValue? = null) {
         observable = resetValue ?: resetValueDefault
     }
 
@@ -36,18 +37,13 @@ abstract class UIObservable<TValue, TListener>(val name: String? = null, val res
      */
     open fun notifyObservers() {
         mainThread.execute {
-
-            println(toString() + " notifyDataChanged observable${try {
-                observable
-            } catch (e: Exception) {
-                "invalid"
-            }}")
-
-
-            observable?.apply {
-                listeners.forEach {
-                    invokeListener(it, this)
+            try {
+                observable?.apply {
+                    dispatchToListeners(this)
                 }
+            } catch (e: Exception) {
+                //observable can be invald
+                e.printStackTrace()
             }
 
             if (autoReset) {
@@ -66,17 +62,23 @@ abstract class UIObservable<TValue, TListener>(val name: String? = null, val res
                 if (observable != newValue) {
                     observable = newValue
 
-                    println(toString() + " notifyDataChanged")
-                    listeners.forEach {
-                        invokeListener(it, newValue)
-                    }
-
+                    dispatchToListeners(newValue)
                     afterNotify?.invoke(newValue)
 
                     if (autoReset) {
                         reset()
                     }
                 }
+            }
+        }
+    }
+
+    protected fun dispatchToListeners(newValue: TValue) {
+        listeners.forEach {
+            try {
+                invokeListener(it, newValue)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

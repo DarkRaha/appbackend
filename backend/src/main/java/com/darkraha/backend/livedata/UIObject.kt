@@ -18,18 +18,16 @@ open class UIObject<TValue>(val name: String? = null, val resetValueDefault: TVa
     @Volatile
     protected var observable: TValue? = null
 
-    open fun addListener(listener: UIObjectListener<TValue>) {
+    fun addListener(listener: UIObjectListener<TValue>) {
         listeners.add(listener)
-        println(toString() + " addChangeListener")
     }
 
 
-    open fun removeListener(listener: UIObjectListener<TValue>) {
+    fun removeListener(listener: UIObjectListener<TValue>) {
         listeners.remove(listener)
-        println(toString() + " removeChangeListener")
     }
 
-    open fun reset(resetValue: TValue? = null) {
+    fun reset(resetValue: TValue? = null) {
         observable = resetValue ?: resetValueDefault
     }
 
@@ -39,11 +37,7 @@ open class UIObject<TValue>(val name: String? = null, val resetValueDefault: TVa
     open fun notifyObservers() {
         mainThread.execute {
 
-            println(toString() + " notifyDataChanged")
-
-            listeners.forEach {
-                it(observable)
-            }
+            dispatchToListeners()
 
             if (autoReset) {
                 reset()
@@ -61,12 +55,9 @@ open class UIObject<TValue>(val name: String? = null, val resetValueDefault: TVa
                 if (observable != newValue) {
                     observable = newValue
 
-                    println(toString() + " notifyDataChanged")
-                    listeners.forEach {
-                        it(newValue)
-                    }
-
+                    dispatchToListeners()
                     afterNotify?.invoke(newValue)
+
                     if (autoReset) {
                         reset()
                     }
@@ -74,5 +65,16 @@ open class UIObject<TValue>(val name: String? = null, val resetValueDefault: TVa
             }
         }
     }
+
+    fun dispatchToListeners() {
+        listeners.forEach {
+            try {
+                it(observable)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
 }
 

@@ -269,6 +269,7 @@ interface QueryBuilder<Self>
 
     fun comment(c: String?): Self
 
+
     //-------------------------------------------------------------------------
     //
 
@@ -285,7 +286,7 @@ interface QueryBuilder<Self>
     /**
      * Run query synchronously.
      */
-    fun exeSync(): UserQuery
+    fun exeSync(autoFree: Boolean): UserQuery
 
 }
 

@@ -208,9 +208,8 @@ open class HttpServiceDefault : HttpService {
             }
         } catch (e: Exception) {
             error(response, e)
-            println("HttpService error ${q.url()}")
+             println("HttpService error ${q.url()}")
             e.printStackTrace()
-
         }
 
         if (q.isError()) {
