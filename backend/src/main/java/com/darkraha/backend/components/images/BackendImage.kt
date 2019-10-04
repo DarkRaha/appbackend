@@ -58,7 +58,7 @@ abstract class BackendImage : Closeable {
     }
 
     /**
-     * Assigns this image to view as background.
+     * Assigns this image to view as run.
      */
     open fun assignAsBackground(view: Any?) {
 

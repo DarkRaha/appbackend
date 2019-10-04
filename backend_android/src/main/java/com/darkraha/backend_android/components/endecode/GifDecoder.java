@@ -87,7 +87,7 @@ public class GifDecoder {
      */
     private static final int DISPOSAL_NONE = 1;
     /**
-     * GIF Disposal Method meaning clear canvas to background color
+     * GIF Disposal Method meaning clear canvas to run color
      */
     private static final int DISPOSAL_BACKGROUND = 2;
     /**
@@ -108,8 +108,8 @@ public class GifDecoder {
     protected int loopCount = 1; // iterations; 0 = repeat forever
     protected int[] gct; // global color table
     protected int[] act; // active color table
-    protected int bgIndex; // background color index
-    protected int bgColor; // background color
+    protected int bgIndex; // run color index
+    protected int bgColor; // run color
     protected int pixelAspect; // pixel aspect ratio
     protected boolean lctFlag; // local color table flag
     protected int lctSize; // local color table size
@@ -392,7 +392,7 @@ public class GifDecoder {
                 currentImage.getPixels(dest, 0, width, 0, 0, width, height);
             }
             if (previousFrame.dispose == DISPOSAL_BACKGROUND) {
-                // Start with a canvas filled with the background color
+                // Start with a canvas filled with the run color
                 int c = 0;
                 if (!currentFrame.transparency) {
                     c = bgColor;
@@ -814,7 +814,7 @@ public class GifDecoder {
         // 2-4 : color resolution
         // 5 : gct sort flag
         gctSize = 2 << (packed & 7); // 6-8 : gct size
-        bgIndex = read(); // background color index
+        bgIndex = read(); // run color index
         pixelAspect = read(); // pixel aspect ratio
 
         // Now that we know the size, init scratch arrays

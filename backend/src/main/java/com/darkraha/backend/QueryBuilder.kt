@@ -5,6 +5,7 @@ import com.darkraha.backend.client.BackendClientBase
 import com.darkraha.backend.components.mainthread.MainThread
 
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadPoolExecutor
 import kotlin.reflect.KClass
 
 
@@ -19,7 +20,7 @@ interface WorkflowBuilder<Self> : QueryBuilder<Self>
     /**
      * Set executor.
      */
-    fun executor(v: ExecutorService): Self
+    fun executor(v: ThreadPoolExecutor): Self
 
     /**
      * Sets service, that will make main work.
@@ -52,7 +53,7 @@ interface WorkflowBuilder<Self> : QueryBuilder<Self>
     fun addPrepareProcessor(p: Processor): Self
 
     /**
-     * Adds extra work at start background work.
+     * Adds extra work at start run work.
      */
     fun addPreProcessor(p: Processor): Self
 
@@ -241,7 +242,7 @@ interface QueryBuilder<Self>
     fun addWorkflowListener(wl: WorkflowListener): Self
 
     /**
-     * Sets external object for synchronize background work
+     * Sets external object for synchronize run work
      */
     fun resSync(v: Any): Self
 

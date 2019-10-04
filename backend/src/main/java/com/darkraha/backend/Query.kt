@@ -8,6 +8,7 @@ import com.darkraha.backend.infos.*
 import java.lang.StringBuilder
 import java.lang.ref.WeakReference
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadPoolExecutor
 import kotlin.reflect.KClass
 
 
@@ -106,7 +107,7 @@ class Query(
         _queryId = q._queryId
     }
 
-    override fun executor(v: ExecutorService): WorkflowBuilder1 = apply {
+    override fun executor(v: ThreadPoolExecutor): WorkflowBuilder1 = apply {
         workflow.executor = v
     }
 

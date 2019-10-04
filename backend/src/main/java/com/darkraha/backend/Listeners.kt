@@ -137,7 +137,7 @@ typealias CallbackErrorHandler = ((Exception) -> Unit)
 interface Callback<T> {
 
     /**
-     * Prepare query before executing in background.
+     * Prepare query before executing in run.
      */
     @JvmDefault
     fun onPrepare(query: T) {

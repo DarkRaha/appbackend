@@ -39,6 +39,12 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         }
     }
 
+    override fun onDecodeFinishCallback(query: UserQuery) {
+        synchronized(decodingFiles) {
+            decodingFiles.remove(query.url())
+        }
+    }
+
     override fun onPrepareLoad(q: UserQuery, response: ClientQueryEditor) {
 
 
@@ -55,7 +61,6 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
             synchronized(loadingFiles) {
                 val qAlready = loadingFiles[url]
                 if (qAlready?.appendQuery(WorkflowAppend(), q) ?: false) {
-
                     response.cancel(1, "Query was appended to existing query.")
                 } else {
                     loadingFiles[url] = q
@@ -78,6 +83,10 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
             q.uiParam()?.let {
                 uiUrlMap[it] = q.getQueryId()
             }
+        }
+
+        q.getQueryId()?.apply {
+            decodingFiles[this] = q
         }
     }
 
@@ -110,6 +119,8 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         var _httpClient: HttpClient? = null
         var _endecodeClient: EndecodeClient? = null
         var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperBase()
+
+
 
         override fun newResult(): ImageManager {
             return ImageManager()
@@ -184,8 +195,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
             result.diskCacheClient = _diskCacheClient!!
             result.httpClient = _httpClient!!
             result.endecoder = _endecodeClient!!
-            result.imagePlatformHelper = _imagePlatformHelper ?: ImagePlatformHelperBase()
-
+            result.imagePlatformHelper = _imagePlatformHelper
             result.attachImagePlatformHelper(result.imagePlatformHelper)
 
             return result

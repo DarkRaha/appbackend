@@ -49,7 +49,7 @@ open class ImagePlatformHelperBase : ImagePlatformHelper() {
     fun addBackendImage(bImage: BackendImage) {
         imageManager.run {
             addImageSizeCalculator(bImage.srcImageClass.kotlin, bImage::getMemoryUsageOf)
-            addImageConverter(bImage.srcImageClass.kotlin, bImage::convertImage)
+            //addImageConverter(bImage.srcImageClass.kotlin, bImage::convertImage)
             bImage.fileDecoder?.apply { addImageDecoder(this) }
             bImage.fileEncoder?.apply { addImageEncoder(this) }
         }

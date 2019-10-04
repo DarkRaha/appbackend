@@ -11,7 +11,7 @@ import com.darkraha.backend.infos.ResponseInfo
 import org.awaitility.kotlin.await
 import java.io.File
 
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -41,7 +41,7 @@ interface WorkflowCancel {
     /**
      * @param uiWithProgressListener when true, then progress listener that correspond to the ui object will be removed
      */
-    fun cancelUi(ui: Any?, progressListener: ProgressListener?, uiWithProgressListener: Boolean)
+    fun cancelUi(ui: Any?, progressListener: ProgressListener?, uiWithProgressListener: Boolean, code: Int = -1)
 }
 
 
@@ -106,7 +106,7 @@ interface ClientQueryEditor : WorkflowCancel {
  *
  * @author Verma Rahul
  */
-class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecutor,
+class WorkflowManager :Runnable, WorkflowState, WorkflowReader, Workflow, WorkflowExecutor,
         ClientQueryEditor, WorkflowCancel {
 
     lateinit var owner: Query
@@ -122,7 +122,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     val appended = mutableListOf<WorkflowAppend>()
 
     private var bgThread: Thread? = null
-    var executor: ExecutorService? = null
+    var executor: ThreadPoolExecutor? = null
     var service: Service? = null
     var client: BackendClientA? = null
     var mainThread: MainThread? = null
@@ -178,7 +178,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     fun isUsed() = state.isFlag(F_USED)
 
     /**
-     * Checks if the query is running in background.
+     * Checks if the query is running in run.
      */
     fun isBackground() = state.isFlag(F_BACKGROUND)
 
@@ -293,8 +293,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         if (isFinished()) {
             finish()
         } else {
-            background()
-            finish()
+            run()
         }
 
         return owner
@@ -325,27 +324,12 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         setUsed(true)
         setRunAsync()
 
-//
-//        GlobalScope.launch(Dispatchers.Main) {
-//            prepare()
-//            if (isFinished()) {
-//                finish()
-//            } else {
-//                executor!!.execute {
-//                    background()
-//                    finish()
-//                }
-//            }
-//        }
         mainThread!!.execute {
             prepare()
             if (isFinished()) {
                 finish()
             } else {
-                executor!!.execute {
-                    background()
-                    finish()
-                }
+                executor!!.execute(this)
             }
         }
 
@@ -373,7 +357,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     }
 
 
-    private fun background() {
+    override fun run() {
         synchronized(syncBg) {
             setBackground(true)
             bgThread = Thread.currentThread()
@@ -405,6 +389,7 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
         success()
         dispatchWorkflowListeners(WORKFLOW_BACKGROUND_END)
+        finish()
     }
 
 
@@ -1063,31 +1048,26 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
     override fun cancelUi(
             ui: Any?,
             progressListener: ProgressListener?,
-            uiWithProgressListener: Boolean
+            uiWithProgressListener: Boolean,
+            code: Int
     ) {
 
-        if (ui != null) {
-            if (owner.params.uiObject == ui) {
-                owner.params.uiObject = null
-                if (uiWithProgressListener) {
-                    synchronized(syncProgress) {
-                        if (this.progressListener != null) {
-                            progressListener?.onEnd()
-                            this.progressListener = null
-                        }
-                    }
-                }
-                if (appended.size == 0) {
-                    cancel(-1)
-                }
+
+        synchronized(syncProgress) {
+            if ((uiWithProgressListener && ui == owner.params.uiObject)
+                    || this.progressListener == progressListener) {
+                this.progressListener?.onEnd()
+                this.progressListener = null
             }
         }
 
-        synchronized(syncProgress) {
-            if (this.progressListener == progressListener) {
-                progressListener?.onEnd()
-                this.progressListener = null
-            }
+        if (ui == owner.params.uiObject) {
+            owner.params.uiObject = null
+        }
+
+
+        if (appended.size == 0) {
+            cancel(code)
         }
 
         synchronized(appended) {
@@ -1107,8 +1087,6 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
                 }
             }
         }
-
-
     }
 
 //----------------------------------------------------------------------------------------
@@ -1140,8 +1118,8 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
         }
     }
 
-    override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
-        response.rawResultBytes = b
+     override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
+         response.rawResultBytes = b
         if (asResult) {
             response.result = b
         }
@@ -1153,6 +1131,15 @@ class WorkflowManager : WorkflowState, WorkflowReader, Workflow, WorkflowExecuto
 
 
     override fun cancel(code: Int, message: String?) {
+
+        if (code == CancelInfo.REJECTED_BY_CLIENT) {
+            if (executor?.remove(this) ?: false) {
+                client?.backend?.queryPool?.backObject(owner)
+            }
+            return
+        }
+
+
 
         if (state.setFlagMustAnyAndNon(
                         F_CANCELED,

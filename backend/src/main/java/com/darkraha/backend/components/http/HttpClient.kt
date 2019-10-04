@@ -11,22 +11,6 @@ import java.io.File
  */
 open class HttpClient protected constructor() : BackendClientBase() {
 
-    open fun subClient(name: String?): HttpClient {
-        val builder = Builder()
-
-        builder.mainThread(mainThread!!)
-            .service(service as HttpService)
-
-        builder.workdir(
-            if (name != null && name.length > 0) {
-                File(workdir, name)
-            } else {
-                workdir
-            }
-        )
-
-        return builder.build()
-    }
 
     open fun checkLink(url: String, params: Map<String, String>?, cb: QueryCallback?) {
         prepareQuery()

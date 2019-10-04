@@ -10,8 +10,13 @@ import com.darkraha.backend.components.endecode.FileDecoder
 import com.darkraha.backend.components.endecode.FileEncoder
 import com.darkraha.backend.components.http.HttpClient
 import com.darkraha.backend.extraparams.ImageLoadEP
+import com.darkraha.backend.infos.CancelInfo
 import java.io.File
 import java.util.*
+import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 
@@ -39,11 +44,30 @@ abstract class ImageManagerClientA : BackendClientBase() {
      *
      */
     protected val loadingFiles = HashMap<String, UserQuery>()
+    protected val decodingFiles = HashMap<String, UserQuery>()
+
+
+    protected val loadingQueries = LinkedBlockingQueue<WorkflowManager>()
+    protected val decodingQueries = LinkedBlockingQueue<WorkflowManager>()
+
+    protected val loadingPool = ThreadPoolExecutor(
+            0, 6,
+            1L, TimeUnit.MINUTES,
+            loadingQueries as LinkedBlockingQueue<Runnable>
+    )
+
+
+    protected val decodingPool = ThreadPoolExecutor(
+            0, 6,
+            1L, TimeUnit.MINUTES,
+            decodingQueries as LinkedBlockingQueue<Runnable>
+    )
+
 
     /**
      *
      */
-    protected val imgConverters = HashMap<KClass<*>, ImageConverter>()
+    // protected val imgConverters = HashMap<KClass<*>, ImageConverter>()
 
 
     val callbackLoad: Callback<UserQuery> = object : Callback<UserQuery> {
@@ -77,7 +101,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
             }
         }
 
-      //  println("ImageManagerClientA not in memImg = ${cache[q.getQueryId()!!]} url=${q.getQueryId()!!}")
+        //  println("ImageManagerClientA not in memImg = ${cache[q.getQueryId()!!]} url=${q.getQueryId()!!}")
         return false
     }
 
@@ -125,7 +149,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         }
 
         q.getAppendedQueries().forEach {
-          println("ImageManagerClientA append it.ui=${it.ui}")
+            println("ImageManagerClientA append it.ui=${it.ui}")
             if (it.ui != null) {
                 buildDecode(
                         q.url()!!, q.fileDestination()!!, it.ui!!,
@@ -154,7 +178,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
         if (ui != null && (urlExpected == null || url == urlExpected)) {
             // BackendImage
-            assignImage(img, ui,  query.getExtraParamAs<ImageLoadEP>())
+            assignImage(img, ui, query.getExtraParamAs<ImageLoadEP>())
         }
     }
 
@@ -171,7 +195,6 @@ abstract class ImageManagerClientA : BackendClientBase() {
 //        } ?:
 
 
-
         imagePlatformHelper.getBackendImage(img)?.assignTo(ui)
         uiUrlMap.remove(ui)
 
@@ -179,17 +202,20 @@ abstract class ImageManagerClientA : BackendClientBase() {
     }
 
     open fun cancelLoad(ui: Any) {
-        var query = loadingFiles[uiUrlMap[ui]]
-        if (query != null) {
-            query.cancelUi(ui, null, true)
+        uiUrlMap.remove(ui)?.apply {
+            loadingFiles.remove(this)?.apply {
+                cancelUi(ui, null, true, CancelInfo.REJECTED_BY_CLIENT)
+            } ?: decodingFiles.remove(this)?.apply {
+                cancelUi(ui, null, true, CancelInfo.REJECTED_BY_CLIENT)
+            }
         }
     }
 
-    open fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
-        imgConverters[cls] = imgConv
-    }
+//    open fun addImageConverter(cls: KClass<*>, imgConv: ImageConverter) {
+//        imgConverters[cls] = imgConv
+//    }
 
-    open fun convertImage(img: Any): Any? = imgConverters[img::class]?.invoke(img)
+    //  open fun convertImage(img: Any): Any? = imgConverters[img::class]?.invoke(img)
 
     open fun removeFromDiskcache(url: String): File? = diskCacheClient.getFile(url)
 
@@ -209,8 +235,8 @@ abstract class ImageManagerClientA : BackendClientBase() {
         imagePlatformHelper.onAttach(this)
     }
 
-    open fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP?=null): Boolean =
-        assignImage(cache[url], ui, ep)
+    open fun loadFromMemory(url: String, ui: Any?, ep: ImageLoadEP? = null): Boolean =
+            assignImage(cache[url], ui, ep)
 
 
     open fun buildLoad(
@@ -222,6 +248,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
     ): QueryBuilder<WorkflowBuilder1> {
 
         return prepareQuery(httpClient.prepareQuery())
+                .executor(loadingPool)
                 .queryId(url)
                 .url(url)
                 .uiParam(ui)
@@ -249,6 +276,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         val _url = url ?: file.toURI().toString()
 
         return prepareQuery(endecoder.prepareDecode(file, "image/*", null, ep, cb))
+                .executor(decodingPool)
                 .queryId(_url)
                 .uiParam(ui)
                 .allowAppend(false)
@@ -312,7 +340,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         return false
     }
 
-    open fun imageFile(url: String, ep:ImageLoadEP?=null):File{
+    open fun imageFile(url: String, ep: ImageLoadEP? = null): File {
         return diskCacheClient.genFile(url)
     }
 

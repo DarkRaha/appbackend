@@ -11,15 +11,16 @@ import java.util.concurrent.TimeUnit
 
 
 /**
- * Base class of backend client. Main purpose create query for service and run it in background.
+ * Base class of backend client. Main purpose create query for service and run it in run.
  * @author Verma rahul
  */
 abstract class BackendClientA : QueryLifeListener {
 
     protected val common = Query()
-    protected var backend: Backend? = null
+    var backend: Backend? = null
+        protected set
 
-    protected var executorService: ExecutorService?
+    protected var executorService: ThreadPoolExecutor?
         set(value) {
             common.workflow.executor = value
         }
@@ -143,7 +144,7 @@ abstract class BackendClientA : QueryLifeListener {
     }
 
 
-    fun buildQueryWith(url: String?, cmd: String?=null, queryId: String?=null)
+    fun buildQueryWith(url: String?, cmd: String? = null, queryId: String? = null)
             : QueryBuilder<WorkflowBuilder1> = buildQuery().also {
         url?.apply { it.url(this) }
         it.command(cmd)
@@ -199,7 +200,7 @@ abstract class BackendClientA : QueryLifeListener {
 
         protected var _workdir: File? = null
         protected var _service: TService? = null
-        protected var _executorService: ExecutorService? = null
+        protected var _executorService: ThreadPoolExecutor? = null
         protected var _mainThread: MainThread? = null
         protected var _backend: Backend? = null
 
@@ -247,7 +248,7 @@ abstract class BackendClientA : QueryLifeListener {
 
         }
 
-        open protected fun defaultExecuterService(): ExecutorService? = ThreadPoolExecutor(
+        open protected fun defaultExecuterService(): ThreadPoolExecutor = ThreadPoolExecutor(
                 0, 6, 2L, TimeUnit.MINUTES,
                 LinkedBlockingQueue<Runnable>()
         )
@@ -268,7 +269,7 @@ abstract class BackendClientA : QueryLifeListener {
             return builder
         }
 
-        fun executorService(exeSrv: ExecutorService): Builder {
+        fun executorService(exeSrv: ThreadPoolExecutor): Builder {
             _executorService = exeSrv
             return builder
         }
