@@ -12,7 +12,7 @@ import kotlin.reflect.KClass
  *
  * @author Verma Rahul
  */
-class SoftUsageLRUCache(maxMemory: Int = 12 * Units.Mb) : Cache {
+class SoftUsageLRUCache(maxMemory: Int = 8 * Units.Mb) : Cache {
 
 
     val evals = HashMap<KClass<*>, MemoryUsage>()

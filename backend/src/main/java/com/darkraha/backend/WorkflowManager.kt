@@ -58,6 +58,7 @@ interface WorkflowReader {
     fun client(): BackendClientA?
     fun lock(): ReentrantLock
     fun cancelInfo(): CancelInfo
+    fun progressListener(): ProgressListener?
 //    fun chainTypeCreate(): ChainType
 //    fun chainTypeResponse(): ChainType
 }
@@ -1039,6 +1040,11 @@ class WorkflowManager :Runnable, WorkflowState, WorkflowReader, Workflow, Workfl
 
     override fun getAppendedQueries(): List<WorkflowAppend> {
         return appended
+    }
+
+
+    override fun progressListener(): ProgressListener? {
+        return progressListener
     }
 
     override fun cancelInfo(): CancelInfo {

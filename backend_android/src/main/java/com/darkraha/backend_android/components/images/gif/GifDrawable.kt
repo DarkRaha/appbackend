@@ -118,10 +118,7 @@ class GifDrawable(gifDecoder: GifDecoder) : Drawable(), Animatable, Runnable {
 
     //==============================================================
     override fun run() {
-//        if (!isRunning) {
-//            return
-//        }
-        mLastTime = SystemClock.uptimeMillis()
+         mLastTime = SystemClock.uptimeMillis()
 
         Backend.sharedInstance.exeAsync({
             curBitmap = gifDecoder.nextFrame
@@ -134,7 +131,7 @@ class GifDrawable(gifDecoder: GifDecoder) : Drawable(), Animatable, Runnable {
     fun sheduleNextFrame() {
         if (isRunning) {
             scheduleSelf(this, mLastTime + frameDelay)
-            println("GifDrawable on run")
+         //   println("GifDrawable on run")
             invalidateSelf()
         }
     }

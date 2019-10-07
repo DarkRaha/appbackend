@@ -137,7 +137,8 @@ abstract class ImageManagerClientA : BackendClientBase() {
                     uiParam,
                     null,
                     q.extraParam() as ImageLoadEP?,
-                    null
+                    q.progressListener()
+
             ).chainTypeCreate(ChainType.LAST_ELEMENT)
 
 
@@ -153,7 +154,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
             if (it.ui != null) {
                 buildDecode(
                         q.url()!!, q.fileDestination()!!, it.ui!!,
-                        it.callback, it.extraParam as ImageLoadEP?
+                        it.callback, it.extraParam as ImageLoadEP?, it.progressListener
                 ).chainTypeCreate(ChainType.LAST_ELEMENT).exeAsync()
             }
         }
@@ -275,6 +276,12 @@ abstract class ImageManagerClientA : BackendClientBase() {
     ): WorkflowBuilder<WorkflowBuilder1> {
         val _url = url ?: file.toURI().toString()
 
+        progressListener?.apply {
+            if (this is UIProgressListenerBase) {
+            //    isIndetermediate = true
+            }
+        }
+
         return prepareQuery(endecoder.prepareDecode(file, "image/*", null, ep, cb))
                 .executor(decodingPool)
                 .queryId(_url)
@@ -286,6 +293,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
                 .addPostProcessor(::onPostDecode)
                 .callbackFirst(callbackDecode)
                 .chainTypeCreate(ChainType.STAND_ALONE)
+               // .progressListener(progressListener)
     }
 
     fun buildDecodeFile(
@@ -333,7 +341,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         val file = diskCacheClient.getFile(url)
 
         if (file != null) {
-            buildDecode(url, file, ui, cb, ep, progressListener).exeAsync()
+             buildDecode(url, file, ui, cb, ep, progressListener).exeAsync()
             return true
         }
 

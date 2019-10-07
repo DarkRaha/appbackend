@@ -22,6 +22,12 @@ class UIProgressListener(val progressBar: ProgressBar) :
         UIProgressListenerBase() {
 
 
+    override var isIndetermediate: Boolean = false
+        get() = super.isIndetermediate
+        set(value) {
+            field = value
+            mainThread.execute { progressBar.isIndeterminate = value }
+        }
 
     init {
         mainThread = Backend.sharedInstance.mainThread
@@ -37,6 +43,7 @@ class UIProgressListener(val progressBar: ProgressBar) :
 
     override fun onUiEnd() {
         progressBar.visibility = View.GONE
+        isIndetermediate = false
     }
 
 }

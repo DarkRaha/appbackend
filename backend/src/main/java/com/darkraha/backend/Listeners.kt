@@ -57,6 +57,12 @@ open class UIProgressListenerBase : ProgressListener {
             }
         }
 
+
+    @Volatile
+    open var isIndetermediate = false
+
+
+
     override fun onProgress(current: Float, total: Float) {
         if (!isActive) {
             return
