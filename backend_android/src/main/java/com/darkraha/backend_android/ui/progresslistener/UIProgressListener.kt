@@ -4,11 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import com.darkraha.backend.Backend
-import com.darkraha.backend.ProgressListener
 import com.darkraha.backend.UIProgressListenerBase
-import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Changes progress bar progress while query handling.
@@ -22,8 +18,7 @@ class UIProgressListener(val progressBar: ProgressBar) :
         UIProgressListenerBase() {
 
 
-    override var isIndetermediate: Boolean = false
-        get() = super.isIndetermediate
+    override var indeterminate: Boolean = false
         set(value) {
             field = value
             mainThread.execute { progressBar.isIndeterminate = value }
@@ -34,7 +29,13 @@ class UIProgressListener(val progressBar: ProgressBar) :
     }
 
     override fun onUiProgress(current: Float, total: Float, currentPercent: Float) {
+
         progressBar.progress = currentPercent.toInt()
+        if (progressBar.visibility != 0) {
+             println("UIProgressListener hidden visiblity = ${progressBar.visibility}")
+            progressBar.visibility = View.VISIBLE
+        }
+
     }
 
     override fun onUiActive(v: Boolean) {
@@ -43,7 +44,24 @@ class UIProgressListener(val progressBar: ProgressBar) :
 
     override fun onUiEnd() {
         progressBar.visibility = View.GONE
-        isIndetermediate = false
+        //indeterminate = false
     }
+
+    override fun onUiStart() {
+        progressBar.visibility = View.VISIBLE
+        progressBar.progress = 0
+    }
+
+
+    override fun onUiIndetermediateChanged() {
+        progressBar.apply {
+            isIndeterminate = indeterminate
+            scaleY = if (indeterminate) 0.1f else 1f
+//            layoutParams = layoutParams.apply {
+//                height = if(indeterminate) 10 else ViewGroup.LayoutParams.WRAP_CONTENT
+//            }
+        }
+    }
+
 
 }

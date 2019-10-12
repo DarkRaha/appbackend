@@ -19,6 +19,8 @@ interface QueryLifeListener {
 }
 
 interface ProgressListener {
+
+    var indeterminate: Boolean
     fun onStart() {}
     fun onEnd() {}
     fun onProgress(current: Float, total: Float)
@@ -28,6 +30,7 @@ interface ProgressListener {
 open class UIProgressListenerBase : ProgressListener {
     lateinit var mainThread: MainThread
 
+
     var percentDelta = 4F
 
     protected var percentValue: Float? = null
@@ -35,13 +38,10 @@ open class UIProgressListenerBase : ProgressListener {
 
     @Volatile
     var isActive: Boolean = false
-
         set(value) {
             if (isUsed && field != value) {
                 field = value
-                mainThread.execute {
-                    onUiActive(value)
-                }
+                executeOnMainThread { onUiActive(value) }
             }
         }
 
@@ -58,9 +58,22 @@ open class UIProgressListenerBase : ProgressListener {
         }
 
 
-    @Volatile
-    open var isIndetermediate = false
+//    @Volatile
+//    open var _indeterminate = false
+//        set(value) {
+//            field = value
+//             executeOnMainThread { onUiIndetermediateChanged() }
+//        }
 
+
+    private var _indeterminate: Boolean = false
+
+    override var indeterminate: Boolean
+        get() = _indeterminate
+        set(value) {
+            _indeterminate = value
+            executeOnMainThread { onUiIndetermediateChanged() }
+        }
 
 
     override fun onProgress(current: Float, total: Float) {
@@ -76,7 +89,7 @@ open class UIProgressListenerBase : ProgressListener {
             if (current >= total || current - previosProgressValue > this * percentDelta) {
                 previosProgressValue = current
 
-                mainThread.execute {
+                executeOnMainThread {
                     if (isActive) {
                         onUiProgress(current, total, 100 * current / total)
                     }
@@ -91,18 +104,24 @@ open class UIProgressListenerBase : ProgressListener {
         previosProgressValue = 0F
         isUsed = true
         isActive = true
-        mainThread.execute {
+        executeOnMainThread {
             onUiStart()
+            onUiIndetermediateChanged()
         }
-
     }
-
 
     override fun onEnd() {
         isUsed = false
         previosProgressValue = 0F
+        executeOnMainThread { onUiEnd() }
+    }
+
+    fun executeOnMainThread(block: () -> Unit) {
+        //  val savedId = queryId
         mainThread.execute {
-            onUiEnd()
+            //    if (savedId == queryId) {
+            block()
+            //   }
         }
     }
 
@@ -122,6 +141,11 @@ open class UIProgressListenerBase : ProgressListener {
     open fun onUiProgress(current: Float, total: Float, currentPercent: Float) {
 
     }
+
+    open fun onUiIndetermediateChanged() {
+
+    }
+
 }
 
 

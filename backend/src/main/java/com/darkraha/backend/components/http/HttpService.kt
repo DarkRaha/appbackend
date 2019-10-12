@@ -30,6 +30,7 @@ interface HttpService : Service {
     fun loadFile(url: String, fileDst: File): ResponseInfo
     fun postForm(url: String, params: Map<String, String>? = null): ResponseInfo
     fun uploadFile(url: String, extraParam: UploadEP): ResponseInfo
+
 }
 
 /**
@@ -38,6 +39,11 @@ interface HttpService : Service {
  * @author Verma Rahul
  */
 open class HttpServiceDefault : HttpService {
+
+
+//    override fun isIndeterminateProgress(): Boolean {
+//        return true
+//    }
 
     val mSchemes = HttpConsts.listOfSchemes()
     val mCommands = HttpConsts.listOfCommands()

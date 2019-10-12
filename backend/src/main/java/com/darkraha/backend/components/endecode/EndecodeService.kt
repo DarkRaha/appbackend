@@ -29,6 +29,9 @@ interface EndecodeService : Service {
  */
 open class EndecodeServiceDefault : EndecodeService {
 
+    override fun isIndeterminateProgress(): Boolean {
+        return true
+    }
 
     protected val decoders = mutableListOf<FileDecoder>()
     protected val encoders = mutableListOf<FileEncoder>()

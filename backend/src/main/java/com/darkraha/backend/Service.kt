@@ -35,4 +35,8 @@ interface Service {
      */
     fun handle(q: UserQuery, swh: ServiceWorkflowHelper, response: ClientQueryEditor);
 
+    fun isIndeterminateProgress() = false
+
+
+
 }

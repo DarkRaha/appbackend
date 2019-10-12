@@ -278,7 +278,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
         progressListener?.apply {
             if (this is UIProgressListenerBase) {
-            //    isIndetermediate = true
+            //    indeterminate = true
             }
         }
 

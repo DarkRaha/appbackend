@@ -107,7 +107,7 @@ interface ClientQueryEditor : WorkflowCancel {
  *
  * @author Verma Rahul
  */
-class WorkflowManager :Runnable, WorkflowState, WorkflowReader, Workflow, WorkflowExecutor,
+class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, WorkflowExecutor,
         ClientQueryEditor, WorkflowCancel {
 
     lateinit var owner: Query
@@ -887,7 +887,13 @@ class WorkflowManager :Runnable, WorkflowState, WorkflowReader, Workflow, Workfl
 
         synchronized(syncProgress) {
             try {
-                progressListener?.onStart()
+                progressListener?.apply {
+
+                    indeterminate = service?.isIndeterminateProgress() ?: false
+                    onStart()
+                 }
+
+
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -1124,8 +1130,8 @@ class WorkflowManager :Runnable, WorkflowState, WorkflowReader, Workflow, Workfl
         }
     }
 
-     override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
-         response.rawResultBytes = b
+    override fun setRawBytes(b: ByteArray?, asResult: Boolean) {
+        response.rawResultBytes = b
         if (asResult) {
             response.result = b
         }
