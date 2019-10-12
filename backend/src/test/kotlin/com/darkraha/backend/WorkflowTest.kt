@@ -6,6 +6,7 @@ import com.darkraha.backend.components.mock.MockService
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
 
 class WorkflowTest {
 
@@ -25,7 +26,7 @@ class WorkflowTest {
     fun testProcessors() {
        
         var query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.state=4
         mockService.result = ok
@@ -56,7 +57,7 @@ class WorkflowTest {
     fun testWorkflowListener() {
       
         var query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.result = ok
 
@@ -103,7 +104,7 @@ class WorkflowTest {
     fun testEmptyWorkflowOk() {
       
         val query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.result = ok
 
@@ -122,7 +123,7 @@ class WorkflowTest {
     fun testEmptyWorkflowError() {
        
         val query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.state = 1
         mockService.errorMessage = err
@@ -145,7 +146,7 @@ class WorkflowTest {
     fun testEmptyWorkflowCancel() {
        
         val query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.state = 2
 
@@ -163,7 +164,7 @@ class WorkflowTest {
     fun testProgressListener() {
        
         val query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         var progress = 0f
         mockService.result = ok
@@ -187,7 +188,7 @@ class WorkflowTest {
     fun testCallbacks() {
         
         val query = Query()
-        val executor = Executors.newFixedThreadPool(1)
+        val executor = Executors.newFixedThreadPool(1) as ThreadPoolExecutor
         val mockService = MockService()
         mockService.result = ok
 

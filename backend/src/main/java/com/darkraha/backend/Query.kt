@@ -310,10 +310,13 @@ class Query(
 
     override fun progressListener(block: (current: Float, total: Float) -> Unit): WorkflowBuilder1 =
             apply {
-                workflow.progressListener = object : ProgressListener {
+                workflow.progressListener = object : ProgressListener() {
+
                     override fun onProgress(current: Float, total: Float) {
                         block(current, total)
                     }
+
+
                 }
             }
 

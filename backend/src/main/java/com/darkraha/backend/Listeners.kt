@@ -18,16 +18,17 @@ interface QueryLifeListener {
 
 }
 
-interface ProgressListener {
+abstract class ProgressListener {
 
-    var indeterminate: Boolean
-    fun onStart() {}
-    fun onEnd() {}
-    fun onProgress(current: Float, total: Float)
+    open var indeterminate: Boolean = false
+
+    open fun onStart() {}
+    open fun onEnd() {}
+    abstract fun onProgress(current: Float, total: Float)
 }
 
 
-open class UIProgressListenerBase : ProgressListener {
+open class UIProgressListenerBase : ProgressListener() {
     lateinit var mainThread: MainThread
 
 
@@ -66,12 +67,12 @@ open class UIProgressListenerBase : ProgressListener {
 //        }
 
 
-    private var _indeterminate: Boolean = false
 
-    override var indeterminate: Boolean
-        get() = _indeterminate
+
+
+    override var indeterminate: Boolean = false
         set(value) {
-            _indeterminate = value
+           field = value
             executeOnMainThread { onUiIndetermediateChanged() }
         }
 
