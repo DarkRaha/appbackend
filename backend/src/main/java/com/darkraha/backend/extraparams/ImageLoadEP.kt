@@ -2,9 +2,31 @@ package com.darkraha.backend.extraparams
 
 import com.darkraha.backend.components.images.BackendImage
 
-enum class ImageFileModificationType {
+enum class ImageSizes {
     ORIGINAL, SCREEN, THUMB_SCREEN2, THUMB_SCREEN4, THUMB_SCREEN8, THUMB_SCREEN16, RASTER,
-    THUMB_64, THUMB_128, THUMB_256, THUMB_512
+    THUMB_64, THUMB_128, THUMB_256, THUMB_512;
+
+
+    fun calcSize(scrWidth: Int, scrHeight: Int,
+                 desiredWidth: Int = 128, desiredHeight: Int = 128):
+            Pair<Int, Int> {
+        return when (this) {
+            SCREEN -> scrWidth to scrHeight
+            THUMB_SCREEN2 -> (scrWidth / 2) to (scrHeight / 2)
+            THUMB_SCREEN4 -> (scrWidth / 4) to (scrHeight / 4)
+            THUMB_SCREEN8 -> (scrWidth / 8) to (scrHeight / 8)
+            THUMB_SCREEN16 -> (scrWidth / 16) to (scrHeight / 16)
+
+
+            RASTER -> desiredWidth to desiredHeight
+            THUMB_64 -> 64 to 64
+            THUMB_256 -> 256 to 256
+            THUMB_512 -> 512 to 512
+            else -> 128 to 128
+        }
+    }
+
+
 }
 
 
@@ -18,15 +40,15 @@ class ImageLoadEP {
 
     var imageLoadConfig: ImageLoadConfig? = null
     var imageDecodeConfig: ImageDecodeConfig? = null
-    var userAssignImage: UserAssignImage?=null
+    var userAssignImage: UserAssignImage? = null
 
 
-    fun saveOriginalImage(v: ImageFileModificationType): ImageLoadEP = apply {
-        imageLoadConfig().saveOriginalImage = v
+    fun saveImageSize(v: ImageSizes): ImageLoadEP = apply {
+        imageLoadConfig().imageSize = v
     }
 
 
-    fun saveRasterSize(width: Int, height: Int): ImageLoadEP = apply {
+    fun saveImageSize(width: Int, height: Int): ImageLoadEP = apply {
         imageLoadConfig().run {
 
             rasterWidth = width
@@ -34,9 +56,9 @@ class ImageLoadEP {
         }
     }
 
-    fun decodeType(v: ImageFileModificationType): ImageLoadEP = apply {
+    fun decodeImageSize(v: ImageSizes): ImageLoadEP = apply {
         imageDecodeConfig().run {
-            decodeType = v
+            imageSize = v
         }
     }
 
@@ -44,15 +66,12 @@ class ImageLoadEP {
         imageDecodeConfig().run { firstFrame = v }
     }
 
-    private fun imageLoadConfig(): ImageLoadConfig = imageLoadConfig ?: let {
-        imageLoadConfig = ImageLoadConfig()
-        imageLoadConfig!!
-    }
+    private fun imageLoadConfig(): ImageLoadConfig = imageLoadConfig
+            ?: ImageLoadConfig().apply { imageLoadConfig = this }
 
-    private fun imageDecodeConfig(): ImageDecodeConfig = imageDecodeConfig ?: let {
-        imageDecodeConfig = ImageDecodeConfig()
-        imageDecodeConfig!!
-    }
+
+    private fun imageDecodeConfig(): ImageDecodeConfig = imageDecodeConfig
+            ?: ImageDecodeConfig().apply { imageDecodeConfig = this }
 
 
 }
@@ -62,14 +81,31 @@ class ImageLoadConfig {
     /**
      * Saves image file as is.
      */
-    var saveOriginalImage = ImageFileModificationType.ORIGINAL
-    var saveFiles: Set<ImageFileModificationType>? = null
+    var imageSize = ImageSizes.ORIGINAL
+    var saveFiles: Set<ImageSizes>? = null
+    var rasterWidth: Int = 128
+    var rasterHeight: Int = 128
 
-    var rasterWidth: Int = 0
-    var rasterHeight: Int = 0
+    fun isThumb(screenWidth: Int = 0, screenHeight: Int = 0): Boolean {
+        return imageSize != ImageSizes.ORIGINAL &&
+                if (imageSize in ImageSizes.SCREEN..ImageSizes.THUMB_SCREEN16) {
+                    screenWidth > 0 && screenHeight > 0
+                } else true
+    }
 }
 
 class ImageDecodeConfig {
-    var decodeType = ImageFileModificationType.ORIGINAL
+    var imageSize = ImageSizes.ORIGINAL
     var firstFrame = false
+    var rasterWidth: Int = 128
+    var rasterHeight: Int = 128
+
+
+    fun isThumb(screenWidth: Int = 0, screenHeight: Int = 0): Boolean {
+        return imageSize != ImageSizes.ORIGINAL &&
+                if (imageSize in ImageSizes.SCREEN..ImageSizes.THUMB_SCREEN16) {
+                    screenWidth > 0 && screenHeight > 0
+                } else true
+    }
+
 }

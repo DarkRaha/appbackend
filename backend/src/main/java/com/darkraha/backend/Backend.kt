@@ -8,6 +8,7 @@ import com.darkraha.backend.components.json.JsonManager
 import com.darkraha.backend.components.json.JsonManagerDefault
 import com.darkraha.backend.components.mainthread.MainThread
 import com.darkraha.backend.components.mainthread.MainThreadDefault
+import com.darkraha.backend.components.screen.DeviceScreen
 
 import com.darkraha.backend.helpers.ErrorFilterManager
 import com.darkraha.backend.helpers.ObjectPool
@@ -57,6 +58,9 @@ open class Backend private constructor() {
 
     lateinit var errorFilter: ErrorFilterManager
         protected set
+
+
+    lateinit var deviceScreen: DeviceScreen
 
 
     val queryPool = ObjectPool { Query() }
@@ -153,6 +157,7 @@ open class Backend private constructor() {
         private var _workdir: File? = null
         private var _jsonManager: JsonManager? = null
         private var _errorFilter: ErrorFilterManager? = null
+        private var _deviceScreen: DeviceScreen? = null
 
 
         fun setAsShared(): Builder {
@@ -170,6 +175,10 @@ open class Backend private constructor() {
             return this
         }
 
+        fun deviceScreen(dc: DeviceScreen): Builder {
+            _deviceScreen = dc
+            return this
+        }
 
         fun httpClient(hc: HttpClient): Builder {
             _httpClient = hc
@@ -229,6 +238,8 @@ open class Backend private constructor() {
             result.endecodeClient =
                     _endecodeClient
                             ?: EndecodeClient.Builder().backend(result).build()
+
+            result.deviceScreen = _deviceScreen ?: DeviceScreen()
 
             result.imageManager = _imageManager ?: ImageManager.Builder()
                     .backend(result)

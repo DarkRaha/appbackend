@@ -351,7 +351,13 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         if (isWorkflowPossible()) {
             dispatchCallbacksPrepare()
             dispatchWorkflowListeners(WORKFLOW_PREPARE_END)
+           if(owner.getQueryId()!=null){
+               println("ImageManager workflow ${owner.getQueryId()}")
+           }
             dispatchProgressStart()
+        }else{
+            println("ImageManager workflow end ${owner.getQueryId()}")
+            dispatchProgressEnd()
         }
 
         setPrepareDone()
@@ -383,7 +389,6 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         }
 
         synchronized(syncBg) {
-            dispatchProgressEnd()
             setBackground(false)
             bgThread = null
         }
@@ -397,7 +402,7 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
     private fun finish() {
 
         dispatchWorkflowListeners(WORKFLOW_FINISH_START)
-
+        dispatchProgressEnd()
         if (hasCallbacks()) {
             mainThread!!.execute {
                 finishCallbacks()

@@ -9,6 +9,7 @@ import com.darkraha.backend.components.endecode.EndecodeClient
 import com.darkraha.backend.components.endecode.FileDecoder
 import com.darkraha.backend.components.endecode.FileEncoder
 import com.darkraha.backend.components.http.HttpClient
+import com.darkraha.backend.components.screen.DeviceScreen
 import com.darkraha.backend.extraparams.ImageLoadEP
 import com.darkraha.backend.infos.CancelInfo
 import java.io.File
@@ -31,6 +32,10 @@ abstract class ImageManagerClientA : BackendClientBase() {
     lateinit protected var httpClient: HttpClient
 
     lateinit var imagePlatformHelper: ImagePlatformHelper
+        protected set
+
+
+    lateinit var deviceScreen: DeviceScreen
         protected set
 
     protected var cache: SoftUsageLRUCache = SoftUsageLRUCache()
@@ -90,12 +95,29 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
 
     //--------------------------------------------------------------------------------------
+    open fun getUrlForMemCache(q: UserQuery) =
+            q.extraParam()?.takeIf {
+                it is ImageLoadEP && it.imageDecodeConfig?.isThumb(deviceScreen.scrWidth, deviceScreen.scrHeight) ?: false
+            }?.run {
+                this as ImageLoadEP
+
+                "${imageDecodeConfig!!.imageSize}:${q.getQueryId()}"
+            } ?: q.getQueryId()!!
+
+
+    override fun onAddToBackend(backend: Backend) {
+        super.onAddToBackend(backend)
+        deviceScreen = backend.deviceScreen
+    }
+
+    //--------------------------------------------------------------------------------------
 
     open protected fun checkMemCache(q: UserQuery, response: ClientQueryEditor): Boolean {
         q.uiParam()?.let {
-            val result = cache[q.getQueryId()!!]
+            val result = cache[getUrlForMemCache(q)]
 
             if (result != null) {
+                println("ImageManager checkMemCache true url=${q.getQueryId()}")
                 response.success(result, ChainType.LAST_ELEMENT)
                 return true
             }
@@ -107,7 +129,9 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
 
     open protected fun checkCachesBeforeLoad(q: UserQuery, response: ClientQueryEditor): Boolean {
-        if (!checkMemCache(q, response)) {
+       val checkMem = checkMemCache(q, response)
+
+        if (!checkMem) {
 
             q.fileDestination()?.apply {
                 if (exists() && length() > 0) {
@@ -119,7 +143,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
             return false
         }
-        return false
+        return checkMem
     }
 
 
@@ -179,6 +203,11 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
         if (ui != null && (urlExpected == null || url == urlExpected)) {
             // BackendImage
+           query.progressListener()?.apply {
+              println("ImageManager end progress ${query.getQueryId()}")
+               this as UIProgressListenerBase
+               this.onUiEnd()
+           }
             assignImage(img, ui, query.getExtraParamAs<ImageLoadEP>())
         }
     }
@@ -278,7 +307,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
 
         progressListener?.apply {
             if (this is UIProgressListenerBase) {
-            //    indeterminate = true
+                //    indeterminate = true
             }
         }
 
@@ -293,7 +322,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
                 .addPostProcessor(::onPostDecode)
                 .callbackFirst(callbackDecode)
                 .chainTypeCreate(ChainType.STAND_ALONE)
-               // .progressListener(progressListener)
+        // .progressListener(progressListener)
     }
 
     fun buildDecodeFile(
@@ -341,7 +370,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         val file = diskCacheClient.getFile(url)
 
         if (file != null) {
-             buildDecode(url, file, ui, cb, ep, progressListener).exeAsync()
+            buildDecode(url, file, ui, cb, ep, progressListener).exeAsync()
             return true
         }
 

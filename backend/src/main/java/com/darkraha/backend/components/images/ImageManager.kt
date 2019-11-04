@@ -74,6 +74,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
     }
 
     override fun onPreLoad(q: UserQuery, response: ClientQueryEditor) {
+        println("ImageManager onPreLoad true url=${q.getQueryId()}")
         checkCachesBeforeLoad(q, response)
     }
 
@@ -103,10 +104,13 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
     }
 
     override fun onPostDecode(q: UserQuery, response: ClientQueryEditor) {
-        q.getQueryId()?.let {
-            val img = q.result()!!
-            if (cache[it] == null) {
-                cache[it] = img
+
+        val key = getUrlForMemCache(q)
+        println("ImageManager onPostDecode urlkey=${key}")
+
+        q.result()?.apply {
+            if (cache[key] == null) {
+                cache[key] = this
                 cache.cleanup()
             }
         }
@@ -119,7 +123,6 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         var _httpClient: HttpClient? = null
         var _endecodeClient: EndecodeClient? = null
         var _imagePlatformHelper: ImagePlatformHelper = ImagePlatformHelperBase()
-
 
 
         override fun newResult(): ImageManager {

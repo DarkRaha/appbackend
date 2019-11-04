@@ -40,22 +40,20 @@ open class UIProgressListenerBase : ProgressListener() {
     @Volatile
     var isActive: Boolean = false
         set(value) {
-            if (isUsed && field != value) {
                 field = value
                 executeOnMainThread { onUiActive(value) }
-            }
         }
 
     @Volatile
     var isUsed: Boolean = false
         set(value) {
-            if (field != value) {
+
                 field = value
                 if (!value) {
                     isActive = false
                 }
                 previosProgressValue = 0F
-            }
+
         }
 
 
@@ -115,6 +113,7 @@ open class UIProgressListenerBase : ProgressListener() {
         isUsed = false
         previosProgressValue = 0F
         executeOnMainThread { onUiEnd() }
+       // mainThread.post { onUiEnd() }
     }
 
     fun executeOnMainThread(block: () -> Unit) {
