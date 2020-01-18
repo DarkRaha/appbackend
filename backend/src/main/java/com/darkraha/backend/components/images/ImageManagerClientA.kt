@@ -117,7 +117,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
             val result = cache[getUrlForMemCache(q)]
 
             if (result != null) {
-                println("ImageManager checkMemCache true url=${q.getQueryId()}")
+               // println("ImageManager checkMemCache true url=${q.getQueryId()}")
                 response.success(result, ChainType.LAST_ELEMENT)
                 return true
             }
@@ -174,7 +174,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         }
 
         q.getAppendedQueries().forEach {
-            println("ImageManagerClientA append it.ui=${it.ui}")
+          //  println("ImageManagerClientA append it.ui=${it.ui}")
             if (it.ui != null) {
                 buildDecode(
                         q.url()!!, q.fileDestination()!!, it.ui!!,
@@ -204,7 +204,7 @@ abstract class ImageManagerClientA : BackendClientBase() {
         if (ui != null && (urlExpected == null || url == urlExpected)) {
             // BackendImage
            query.progressListener()?.apply {
-              println("ImageManager end progress ${query.getQueryId()}")
+           //   println("ImageManager end progress ${query.getQueryId()}")
                this as UIProgressListenerBase
                this.onUiEnd()
            }

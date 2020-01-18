@@ -74,7 +74,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
     }
 
     override fun onPreLoad(q: UserQuery, response: ClientQueryEditor) {
-        println("ImageManager onPreLoad true url=${q.getQueryId()}")
+     //   println("ImageManager onPreLoad true url=${q.getQueryId()}")
         checkCachesBeforeLoad(q, response)
     }
 
@@ -95,7 +95,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         q.uiParam()?.let {
             if (q.getQueryId() != uiUrlMap[it]) {
                 q.cancel(CancelInfo.CANCEL_BY_USER, "Canceled, ui object not corresponds to url ${q.getQueryId()}.")
-                println("ImageManagerClientDefault ${q.cancelInfo()}")
+              //  println("ImageManagerClientDefault ${q.cancelInfo()}")
                 return
             }
         }
@@ -106,7 +106,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
     override fun onPostDecode(q: UserQuery, response: ClientQueryEditor) {
 
         val key = getUrlForMemCache(q)
-        println("ImageManager onPostDecode urlkey=${key}")
+      //  println("ImageManager onPostDecode urlkey=${key}")
 
         q.result()?.apply {
             if (cache[key] == null) {

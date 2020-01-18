@@ -32,7 +32,7 @@ interface WorkflowExecutor {
     /**
      * Run query synchronously.
      */
-    fun exeSync(autoFree: Boolean = true): UserQuery
+    fun exeSync(autoFree: Boolean = true, isCallbackCurrentThread: Boolean = false): UserQuery
 }
 
 
@@ -276,7 +276,7 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
 //-------------------------------------------------------------------------------------------------
 // workflow
 
-    override fun exeSync(autoFree: Boolean): UserQuery {
+    override fun exeSync(autoFree: Boolean, isCallbackCurrentThread: Boolean): UserQuery {
         owner.params.urlBuilder.build()
 
 
@@ -287,6 +287,11 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         if (!autoFree) {
             use()
         }
+
+        if(isCallbackCurrentThread){
+            state.setFlag(F_RUN_SYNC_CALLBACK_CURRENT_THREAD)
+        }
+
         setRunSync()
         setUsed(true)
 
@@ -351,13 +356,7 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         if (isWorkflowPossible()) {
             dispatchCallbacksPrepare()
             dispatchWorkflowListeners(WORKFLOW_PREPARE_END)
-           if(owner.getQueryId()!=null){
-               println("ImageManager workflow ${owner.getQueryId()}")
-           }
             dispatchProgressStart()
-        }else{
-            println("ImageManager workflow end ${owner.getQueryId()}")
-            dispatchProgressEnd()
         }
 
         setPrepareDone()
@@ -404,8 +403,12 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         dispatchWorkflowListeners(WORKFLOW_FINISH_START)
         dispatchProgressEnd()
         if (hasCallbacks()) {
-            mainThread!!.execute {
+            if(state.isFlag(F_RUN_SYNC_CALLBACK_CURRENT_THREAD)){
                 finishCallbacks()
+            }else {
+                mainThread!!.execute {
+                    finishCallbacks()
+                }
             }
         } else {
             finish_end()
@@ -853,6 +856,8 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
         @JvmStatic
         val F_ALLOW_APPEND = 1024
 
+        @JvmStatic
+        val F_RUN_SYNC_CALLBACK_CURRENT_THREAD = 2048
 
         @JvmStatic
         val WORKFLOW_PREPARE_START = 1

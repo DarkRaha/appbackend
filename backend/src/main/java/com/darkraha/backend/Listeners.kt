@@ -40,19 +40,23 @@ open class UIProgressListenerBase : ProgressListener() {
     @Volatile
     var isActive: Boolean = false
         set(value) {
-                field = value
+            if (isUsed) {
                 executeOnMainThread { onUiActive(value) }
+                field = value
+            } else {
+                field = false
+            }
         }
 
     @Volatile
     var isUsed: Boolean = false
         set(value) {
 
-                field = value
-                if (!value) {
-                    isActive = false
-                }
-                previosProgressValue = 0F
+            field = value
+            if (!value) {
+                isActive = false
+            }
+            previosProgressValue = 0F
 
         }
 
@@ -65,12 +69,9 @@ open class UIProgressListenerBase : ProgressListener() {
 //        }
 
 
-
-
-
     override var indeterminate: Boolean = false
         set(value) {
-           field = value
+            field = value
             executeOnMainThread { onUiIndetermediateChanged() }
         }
 
@@ -113,7 +114,7 @@ open class UIProgressListenerBase : ProgressListener() {
         isUsed = false
         previosProgressValue = 0F
         executeOnMainThread { onUiEnd() }
-       // mainThread.post { onUiEnd() }
+        // mainThread.post { onUiEnd() }
     }
 
     fun executeOnMainThread(block: () -> Unit) {
@@ -226,7 +227,12 @@ object CallbackUtils {
 
     val CB_FINISHED = 6
 
-    fun <T> dispatchCallbacks(cbState: Int, value: T, callbacks: Iterable<Callback<T>>, onException: CallbackErrorHandler? = null) {
+    fun <T> dispatchCallbacks(
+        cbState: Int,
+        value: T,
+        callbacks: Iterable<Callback<T>>,
+        onException: CallbackErrorHandler? = null
+    ) {
         when (cbState) {
             CB_PREPARE -> callbacks.forEach {
                 try {

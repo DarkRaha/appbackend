@@ -287,7 +287,7 @@ interface QueryBuilder<Self>
     /**
      * Run query synchronously.
      */
-    fun exeSync(autoFree: Boolean): UserQuery
+    fun exeSync(autoFree: Boolean, isCallbackCurrentThread: Boolean=false): UserQuery
 
 }
 
