@@ -94,7 +94,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
     override fun onPreDecode(q: UserQuery, response: ClientQueryEditor) {
         q.uiParam()?.let {
             if (q.getQueryId() != uiUrlMap[it]) {
-                q.cancel(CancelInfo.CANCEL_BY_USER, "Canceled, ui object not corresponds to url ${q.getQueryId()}.")
+                  q.cancel(CancelInfo.CANCEL_BY_USER, "Canceled, ui object not corresponds to url ${q.getQueryId()}.")
               //  println("ImageManagerClientDefault ${q.cancelInfo()}")
                 return
             }
@@ -162,7 +162,7 @@ open class ImageManager protected constructor() : ImageManagerClientA() {
         open fun checkDiskcache() {
             if (_diskCacheClient == null) {
                 if (_backend != null) {
-                    _diskCacheClient = _backend!!.diskCacheClient
+                    _diskCacheClient = _backend!!.diskCacheClient.subClient("images")
                 } else {
                     val dcBuilder = DiskCacheClient.Builder()
                     if (_workdir != null) {

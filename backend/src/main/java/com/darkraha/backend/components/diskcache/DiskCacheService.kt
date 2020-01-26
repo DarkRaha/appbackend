@@ -32,6 +32,7 @@ interface DiskCacheService : Service {
     fun genFilename(keyUrl: String, suffix: String = ""): String
 
     fun genFile(keyUrl: String, suffix: String = ""): File {
+        println("DiskCacheService genFile workdir=${getWorkdir()} gen name=${genFilename(keyUrl, suffix)}")
         return File(getWorkdir(), genFilename(keyUrl, suffix))
     }
 
@@ -70,6 +71,7 @@ interface DiskCacheService : Service {
             throw IllegalArgumentException("Key is null")
         }
 
+        val dstFile = genFile(keyUrl, suffix)
         file.copyTo(genFile(keyUrl, suffix))
     }
 

@@ -17,7 +17,7 @@ import java.lang.IllegalStateException
  */
 open class DiskCacheServiceDefault(wd: File = File("diskcache")) : DiskCacheService {
     override fun subDiskCache(subdir: String): DiskCacheService {
-        return SubDiskCacheService(this, subdir)
+        return  DiskCacheServiceDefault(File(workDir, subdir)) //SubDiskCacheService(this, subdir)
     }
 
     val workDir = wd

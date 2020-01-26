@@ -17,10 +17,10 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
         val builder = Builder()
 
         builder.service(srv().subDiskCache(subdir))
-                .backend(backend)
-                .mainThread(mainThread!!)
-                .executorService(executorService!!)
-                .allowChange(true)
+            .backend(backend)
+            .mainThread(mainThread!!)
+            .executorService(executorService!!)
+            .allowChange(true)
 
         return builder.build()
 
@@ -35,7 +35,7 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
      * Generates file for disk cache
      * @param suffix modification
      */
-    open fun genFile(urlKey: String, suffix: String=""): File {
+    open fun genFile(urlKey: String, suffix: String = ""): File {
         return srv().genFile(urlKey, suffix)
     }
 
@@ -44,7 +44,7 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
      * Gets file from disk cache.
      * @return null, if file not exist
      */
-    open fun getFile(urlKey: String, suffix: String=""): File? {
+    open fun getFile(urlKey: String, suffix: String = ""): File? {
         return srv().getFile(urlKey, suffix)
     }
 
@@ -52,10 +52,10 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
      * Cleans old data in disk cache asynchronously.
      */
     open fun clean(
-            maxTime: Long,
-            minTime: Long = maxTime,
-            toSize: Long = 200 * DiskCacheConsts.MB_BYTES,
-            cb: Callback<UserQuery>? = null
+        maxTime: Long,
+        minTime: Long = maxTime,
+        toSize: Long = 200 * DiskCacheConsts.MB_BYTES,
+        cb: Callback<UserQuery>? = null
     ): UserQuery {
         return buildClean(maxTime, minTime, toSize).addCallback(cb).exeAsync()
     }
@@ -76,14 +76,14 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
     //---------------------------------------------------------------------------------------------------------------
 
     open fun buildClean(
-            maxTime: Long,
-            minTime: Long,
-            toSize: Long
+        maxTime: Long,
+        minTime: Long,
+        toSize: Long
     ): QueryBuilder<WorkflowBuilder1> {
         return prepareQuery().command(DiskCacheConsts.CMD_CLEANUP)
-                .addNamedSpecialParam(Param.PARAM_OLD_TIME_MAX, maxTime)
-                .addNamedSpecialParam(Param.PARAM_OLD_TIME_MIN, minTime)
-                .addNamedSpecialParam(Param.PARAM_TO_SIZE, toSize)
+            .addNamedSpecialParam(Param.PARAM_OLD_TIME_MAX, maxTime)
+            .addNamedSpecialParam(Param.PARAM_OLD_TIME_MIN, minTime)
+            .addNamedSpecialParam(Param.PARAM_TO_SIZE, toSize)
     }
 
     open fun buildClear(): QueryBuilder<WorkflowBuilder1> {
@@ -92,8 +92,8 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
 
     open fun buildPutFile(keyUrl: String, file: File): QueryBuilder<WorkflowBuilder1> {
         return prepareQuery().command(DiskCacheConsts.CMD_PUT)
-                .addNamedSpecialParam(Param.PARAM_FILE_SOURCE, file)
-                .addNamedSpecialParam(Param.PARAM_KEY_URL, keyUrl)
+            .addNamedSpecialParam(Param.PARAM_FILE_SOURCE, file)
+            .addNamedSpecialParam(Param.PARAM_KEY_URL, keyUrl)
     }
 
 
@@ -114,13 +114,12 @@ open class DiskCacheClient protected constructor() : BackendClientBase() {
 
         override fun checkWorkdir() {
             if (_workdir == null) {
-                _workdir = if (_backend != null) {
-                    File(_backend!!.workdir, "diskcache")
-                } else {
-                    _service?.getWorkdir() ?: File("diskcache")
-                }
-                _workdir!!.mkdirs()
+                _workdir = _service?.getWorkdir() ?: _backend?.run {
+                    File(this.workdir, "diskcache")
+                } ?: File("diskcache")
             }
+
+            _workdir!!.mkdirs()
         }
 
 
