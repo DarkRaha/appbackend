@@ -133,9 +133,9 @@ class WorkflowManager : Runnable, WorkflowState, WorkflowReader, Workflow, Workf
     var callbackLast: Callback<UserQuery>? = null
 
     var syncResource: Any? = null
-    val syncCallbacks = "syncCallbacks"
-    val syncProgress = "syncProgress"
-    val syncBg = "syncBg"
+    val syncCallbacks = Object()
+    val syncProgress = Object()
+    val syncBg = Object()
 
 
     val state = AtomicFlag()
